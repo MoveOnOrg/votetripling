@@ -1,9 +1,9 @@
 # votetripling
 This document describes how to use 4 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.
 
-1. I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.
+1. I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
 **Inputs:**
-Add a csv  to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.
+Add a csv  to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
 
 **Instructions:**
 Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
@@ -25,12 +25,12 @@ A file with a single row representing each text message conversation, including 
 - *affirmResponse* boolean for presence of a scripted affirmation by text banker
 - *finalAffirmResponse* boolean for presence of a scripted follow up affirmation by text banker
 
-2. I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.
+2. I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.
+Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.   
 
 **Instructions:**
-In this directory, run `python3 annotate_conversations.py -d [input_filename]`
+In this directory, run `python3 annotate_conversations.py -d [input_filename]`. 
 
 **Outputs:**
 This script will output two files:
@@ -55,17 +55,17 @@ b. A file of conversations for manual review, with the following fields:
 - *names_extract* guess for what names (if any) were provided by this person as tripling targets
 
 
-3. I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.
+3. I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker
+Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
 
 **Instructions:**
-In this directory, run `python3 name_cleaning.py -d [input_filename]`
+In this directory, run `python3 name_cleaning.py -d [input_filename]`  
 
 **Outputs:**
-A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
+A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
 
-4. I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.
+4. I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
 **Inputs:**
 Add a csv to the Input_Data folder. 
 This csv file must be of the same format as the output of the aggregation in step 1.
