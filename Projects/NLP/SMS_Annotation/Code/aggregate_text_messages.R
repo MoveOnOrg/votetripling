@@ -96,7 +96,7 @@ categorizeBankerResponse <- function(messagesAgg,
 ##############################
 
 # 3. Put the appropriate file path to the raw text data here <<<
-data <- fread("./Documents/Personal/Voting/Data/testdata.csv")
+data <- fread("./Documents/Personal/Voting/Data/SMS/Test_Data/testdata.csv")
 
 # Aggregate data
 agg <- aggregateMessages(data)
