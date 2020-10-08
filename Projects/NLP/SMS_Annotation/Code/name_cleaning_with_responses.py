@@ -8,7 +8,7 @@ Created on Thu Oct  1 21:49:04 2020
 
 import argparse
 from pathlib import Path
-from utilities import clean_labeled_names, load_civis, load_flat_file
+from utilities import clean_labeled_names, load_civis, load_flat_file, export_civis
 
 def main(args):
     
@@ -42,7 +42,7 @@ def main(args):
 
     # Write out annotated file
     if args.use_civis:
-        civis.io.dataframe_to_civis(data, database="Vote Tripling", table="above_the_wall.test_output")
+        export_civis(data, args.output_file.replace(".csv", ""))
     else:
         data.to_csv(Path(home, "Output_Data", args.output_file), index = False)
 

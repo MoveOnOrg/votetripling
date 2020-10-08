@@ -71,9 +71,9 @@ def main(args):
     print("Cleaning and Featurizing...")
 
     # Fix NA Values
-    data.loc[data.voterResponse.isnull(), 'voterResponse'] = ""
-    data.loc[data.voterFinal.isnull(), 'voterFinal'] = ""
-    data.loc[data.voterPost.isnull(), 'voterPost'] = ""
+    data.loc[data.voterResponse.isnull(), 'voterresponse'] = ""
+    data.loc[data.voterFinal.isnull(), 'voterfinal'] = ""
+    data.loc[data.voterPost.isnull(), 'voterpost'] = ""
 
     # Number of tokens in final response
     data['num_tokens'] = data.voterFinal.str.count(" ") + ~(data.voterFinal == "")
@@ -105,7 +105,7 @@ def main(args):
     triplers.loc[triplers.name_provided_probability < UPPER_BOUND, 'names_extract'] = ''
     triplers['opted_out'] = np.where(triplers.optout_probability < UPPER_BOUND, 'no', 'yes')
     triplers['wrong_number'] = np.where(triplers.wrongnumber_probability < UPPER_BOUND, 'no', 'yes')
-    triplers = triplers[['ConversationId', 'contact_phone', 
+    triplers = triplers[['conversationId', 'contact_phone', 
                          'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
 
     # Create Dataset for manual review
@@ -122,7 +122,7 @@ def main(args):
     review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
     review['wrong_number'] = np.where(review.wrongnumber_probability < MID_BOUND, 'no', 'yes')
     review = review[['ConversationId', 'contact_phone', 
-                     'voterResponse', 'voterFinal', 'voterPost',
+                     'voterresponse', 'voterfinal', 'voterpost',
                      'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
     
     # Write out annotated files
