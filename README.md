@@ -1,5 +1,18 @@
 # Votetripling Extraction Script Instructions
 This document describes how to use 5 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.  
+
+## Requirements
+- Make sure you have python 3 with anaconda (https://www.anaconda.com/) configured locally
+- Clone this repository
+- Ensure you have all of the following packages. Each can be installed with the listed command(s)
+  - Spacy `pip install -U spacy`  
+         `python -m spacy download en_core_web_sm`
+  - Pathlib `pip install pathlib`
+  - Levenshtein `pip install python-Levenshtein`
+  - NLTK `pip install nltk`
+
+## Getting Started
+Find your use case below and add your input data to the appropriate place, then run the specified python script.
 All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`  
 All input data should be added to `Projects/NLP/SMS_Annotation/Input_Data`  
 All output data (after running a script) will be found in `Projects/NLP/SMS_Annotation/Output_Data`  
@@ -8,13 +21,13 @@ All output data (after running a script) will be found in `Projects/NLP/SMS_Anno
 **Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
   
 **Inputs:**
-Add a csv  to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
+Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
 
 **Instructions:**
 Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
 
 **Outputs:**
-A file with a single row representing each text message conversation, including the following fields
+A file (filename specified by you in the R script) with a single row representing each text message conversation, including the following fields
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *totalMessages* the total number of messages exchanged
@@ -42,7 +55,7 @@ In this directory, run `python3 Code/annotate_conversations.py -d [input_filenam
 
 **Outputs:**
 This script will output two files:  
-1. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+1. A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *is_tripler* did this person agree to be a tripler ('yes' for everyone in this file)
@@ -50,7 +63,7 @@ This script will output two files:
 - *wrong_number* did we have the wrong number for this person
 - *names_extract* what names (if any) were provided by this person as tripling targets
 
-2. A file of conversations for manual review, with the following fields:
+2. A file of conversations for manual review called `sms_manual_review.csv`, with the following fields:
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
@@ -72,7 +85,7 @@ Add a csv to the Input_Data folder. This csv file must contain column 'names' co
 In this directory, run `python3 Code/name_cleaning.py -d [input_filename]`  
 
 **Outputs:**
-A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
+A File named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
   
   
 ## Text Banker Log Cleaning (utilizing text message conversation)
@@ -87,7 +100,7 @@ This csv file must also contain column 'names' containing the names logged by a 
 In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_filename]`
 
 **Outputs:**
-A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
+A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
   
   
 ## VAN Export Cleaning
@@ -104,11 +117,11 @@ In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`
 
 **Outputs:**
 This script will output two files:  
-1. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+1. A file of triplers called `van_cleaned.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *VANID* a unique identifier for the conversation
 - *names_extract* the extracted names
 
-2. A file of conversations for manual review, with the following fields:
+2. A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
 - *VANID* a unique identifier for the conversation
 - *ContactName* a unique identifier for the conversation
 - *NoteText* free text possibly including names of tripling targets
