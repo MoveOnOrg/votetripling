@@ -16,12 +16,9 @@ Created on Sat Sep 19 09:44:24 2020
 import argparse
 import pandas as pd
 import numpy as np
-import re
 import pickle
 from pathlib import Path
-from scipy.sparse import hstack
-from utilities import cleanString, stemmer, nlp, extract_good_tokens, \
-                    POSSESSIVES, RELATIONSHIPS, EXCLUDE, EXCLUDE_PRIOR, \
+from utilities import cleanString, extract_good_tokens, \
                     get_token_features, get_doc, normalize_token
     
 def main(args):
