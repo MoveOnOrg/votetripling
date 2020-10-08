@@ -77,20 +77,20 @@ def main(args):
         van = load_flat_file(home, args.input_data_filename)
 
     # Clean NA values
-    van.loc[van.NoteText.isnull(), 'NoteText'] = ""
-    van.loc[van.ContactName.isnull(), 'ContactName'] = ""
+    van.loc[van.NoteText.isnull(), 'notetext'] = ""
+    van.loc[van.ContactName.isnull(), 'contactname'] = ""
 
     # Get Extracted Names
     names_extract = []
     manual_review = []
     for i, row in van.iterrows():
-        response = row['NoteText']
+        response = row['notetext']
         if (cleanString(response) == ""):
             names_extract.append("")
             manual_review.append(False)
             continue
         X_tokens_row = pd.DataFrame(
-            get_token_features(response, row['ContactName'], english_dict, census_dict, census_last_dict, token_counter)
+            get_token_features(response, row['contactname'], english_dict, census_dict, census_last_dict, token_counter)
             ).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
         doc = get_doc(response)
@@ -100,7 +100,7 @@ def main(args):
         # Extract any plausible tokens
         names_extract.append(extract_good_tokens(
                 clean_tokens = clean_tokens, 
-                triple_message = row['ContactName'],
+                triple_message = row['contactname'],
                 y_pred = y_pred, 
                 response = response, 
                 threshold = LOWER_BOUND
@@ -112,8 +112,8 @@ def main(args):
     van['manual_review'] = manual_review
 
     # Get those with confirmed names
-    triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['VANID', 'names_extract']]
-    review = van.loc[van.manual_review == True][['VANID', 'ContactName', 'NoteText', 'names_extract']]
+    triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['vanid', 'names_extract']]
+    review = van.loc[van.manual_review == True][['vanid', 'contactname', 'notetext', 'names_extract']]
     
     # Write out annotated files
     if args.use_civis:

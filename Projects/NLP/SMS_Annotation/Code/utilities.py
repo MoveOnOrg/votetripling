@@ -272,12 +272,12 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
     data['name_prob3'] = 0.0
     data['names_extract'] = ""
     for i, row in data.iterrows():
-        if (cleanString(row['voterFinal'], ) == "" or row['voterFinal'] is None) and \
-            (cleanString(row['voterPost']) == "" or row['voterPost'] is None):
+        if (cleanString(row['voterfinal'], ) == "" or row['voterfinal'] is None) and \
+            (cleanString(row['voterpost']) == "" or row['voterpost'] is None):
             continue
         X_tokens_row = pd.DataFrame(
-            get_token_features(row['voterFinal'], row['tripleMessage'], english_dict, census_dict, census_last_dict, token_counter) + \
-            get_token_features(row['voterPost'], row['tripleMessage'], english_dict, census_dict, census_last_dict, token_counter)
+            get_token_features(row['voterfinal'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter) + \
+            get_token_features(row['voterpost'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter)
             ).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
         top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
@@ -288,15 +288,15 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
             data.loc[i, 'name_prob3'] = top3_tokens[2]
 
         # Get Tokens
-        doc = get_doc(row['voterFinal'])
-        post_doc = get_doc(row['voterPost'])
+        doc = get_doc(row['voterfinal'])
+        post_doc = get_doc(row['voterpost'])
         clean_tokens = [normalize_token(t.string) for t in doc] + [normalize_token(t.string) for t in post_doc]
         clean_tokens = [t for t in clean_tokens if not t == ""]
 
-        full_response = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' + row['voterPost']
+        full_response = row['voterresponse'] + ' ' + row['voterfinal'] + ' ' + row['voterpost']
         data.loc[i, 'names_extract'] = extract_good_tokens(
                 clean_tokens = clean_tokens, 
-                triple_message = row['tripleMessage'], 
+                triple_message = row['triplemessage'], 
                 y_pred = y_pred, 
                 response = full_response, 
                 threshold = threshold
@@ -305,16 +305,16 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
 
 def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer):
     # Voter Response
-    X_response = response_vectorizer.transform(data['voterResponse'])
+    X_response = response_vectorizer.transform(data['voterresponse'])
 
     # Voter Final
-    X_final = final_vectorizer.transform(data['voterFinal'])
+    X_final = final_vectorizer.transform(data['voterfinal'])
 
     # Voter Post
-    X_post = post_vectorizer.transform(data['voterPost'])
+    X_post = post_vectorizer.transform(data['voterpost'])
 
     # Peripheral Features
-    X_features = data[['noResponse', 'negResponse', 'posResponse', 'affirmResponse', 'finalAffirmResponse', 'name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']].values * 1
+    X_features = data[['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse', 'name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']].values * 1
 
     # Combine features
     X = hstack((X_response, X_final, X_post, X_features.astype('float')))
