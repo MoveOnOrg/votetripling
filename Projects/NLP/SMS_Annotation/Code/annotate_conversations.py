@@ -74,7 +74,12 @@ def present_tokens(clean_tokens,
         else:
             token = token.capitalize()
         good_tokens.append(token)
-    return set(good_tokens)
+        
+    name_tokens = list(set(good_tokens))
+    if len(name_tokens) < 1:
+        return ''
+    name_tokens[len(name_tokens) - 1] = 'and ' + name_tokens[len(name_tokens) - 1]
+    return ', '.join(name_tokens)
     
 def extract_good_tokens(clean_tokens, 
                         triple_message,
@@ -82,7 +87,7 @@ def extract_good_tokens(clean_tokens,
                         response,
                         threshold = .5):
     good_tokens = [t for j, t in enumerate(clean_tokens) if y_pred[j, 1] > threshold]
-    return '|'.join(present_tokens(good_tokens, response, triple_message))
+    return present_tokens(good_tokens, response, triple_message)
 
 ################################
 # Featurizing Functions
@@ -107,7 +112,7 @@ def get_token_features(voterResponse,
                        name_threshold = 8
                        ):
     token_features = []
-    
+
     # Parse using spacy
     doc = get_doc(voterResponse)
     persons = [e for e in doc.ents if e.label_ == "PERSON"]
@@ -129,13 +134,13 @@ def get_token_features(voterResponse,
     and_tokens = sum(is_and)
     seperators = sum(is_seperator)
     other = total_tokens - word_tokens - seperators
-    
+
     for j, clean_token in enumerate(clean_tokens):
-                
+
         # Skip Non-Wordlike tokens
         if not is_wordlike[j]:
             continue
-                
+
         # Build all token features
         feature_dict = {
                 'initialResponse' : is_initial_response,
@@ -192,13 +197,13 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
             data.loc[i, 'name_prob2'] = top3_tokens[1]
         if len(top3_tokens) > 2:
             data.loc[i, 'name_prob3'] = top3_tokens[2]
-            
+
         # Get Tokens
         doc = get_doc(row['voterFinal'])
         post_doc = get_doc(row['voterPost'])
         clean_tokens = [normalize_token(t.string) for t in doc] + [normalize_token(t.string) for t in post_doc]
         clean_tokens = [t for t in clean_tokens if not t == ""]
-        
+
         full_response = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' + row['voterPost']
         data.loc[i, 'names_extract'] = extract_good_tokens(clean_tokens, row['tripleMessage'], y_pred, full_response, threshold)
     return data
@@ -206,38 +211,38 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
 def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer):
     # Voter Response
     X_response = response_vectorizer.transform(data['voterResponse'])
-    
+
     # Voter Final
     X_final = final_vectorizer.transform(data['voterFinal'])
-    
+
     # Voter Post
     X_post = post_vectorizer.transform(data['voterPost'])
-    
+
     # Peripheral Features
     X_features = data[['noResponse', 'negResponse', 'posResponse', 'affirmResponse', 'finalAffirmResponse', 'name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']].values * 1
-    
+
     # Combine features
     X = hstack((X_response, X_final, X_post, X_features.astype('float')))
-    
-    return X
 
-def main(args):
+    return X
     
+def main(args):
+
     # Set home directory
     home = Path(args.home_folder)
     THRESHOLD = args.threshold_name_prob
-    DATA_FILE = Path(home, args.data_file)
+    DATA_FILE = Path(home, "Input_Data", args.input_data_filename)
 
     print("Loading Models...")
 
 
-    pickle_file = Path(home, "annotation_models.pkl")
+    pickle_file = Path(home, "Models", "annotation_models.pkl")
     with open(pickle_file, "rb") as f:
         # N-Gram Featurizers
         response_vectorizer = pickle.load(f)
         final_vectorizer = pickle.load(f)
         post_vectorizer = pickle.load(f)
-    
+
         # Logistic Regressions
         token_model = pickle.load(f)
         model_tripler = pickle.load(f)
@@ -247,57 +252,90 @@ def main(args):
         token_counter = pickle.load(f)
 
     print("Loading Data...")
-    
+
     # US Census Data
-    census = pd.read_csv(Path(home, args.census_data_file))
+    census = pd.read_csv(Path(home, "Utility_Data", "census_first_names_all.csv"))
     census_dict = {}
     for i, row in census.iterrows():
         census_dict[row['name']] = np.log(row['census_count'])
-       
+
     # Last Name Data
-    census_last = pd.read_csv(Path(home, "census_last_names_all.csv"))
+    census_last = pd.read_csv(Path(home, "Utility_Data", "census_last_names_all.csv"))
     census_last_dict = {}
     for i, row in census_last.iterrows():
         census_last_dict[row['name']] = np.log(row['census_count'])
 
     # US Word Freq Data
-    english = pd.read_csv(Path(home, args.english_data_file))
+    english = pd.read_csv(Path(home, "Utility_Data", "english.csv"))
     english_dict = {}
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
-    
+
     # Aggregated Message Data
     data = pd.read_csv(DATA_FILE, encoding='latin1')
 
     print("Cleaning and Featurizing...")
-    
+
     # Fix NA Values
     data.loc[data.voterResponse.isnull(), 'voterResponse'] = ""
     data.loc[data.voterFinal.isnull(), 'voterFinal'] = ""
     data.loc[data.voterPost.isnull(), 'voterPost'] = ""
-    
+
     # Number of tokens in final response
     data['num_tokens'] = data.voterFinal.str.count(" ") + ~(data.voterFinal == "")
-    
+
     # Build Token Features
     data = add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = THRESHOLD)
-    
+
     # Build Features
     X = featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer)
 
     print("Annotating with Predictions...")
-    
+
     # Add Predictions
     data['tripler_probability'] = model_tripler.predict_proba(X)[:, 1]
     data['name_provided_probability'] = model_name.predict_proba(X)[:, 1]
     data['optout_probability'] = model_opt.predict_proba(X)[:, 1]
     data['wrongnumber_probability'] = model_wrongnumber.predict_proba(X)[:, 1]
-    
-    # Eliminate names when its not likely that any are valid
-    data.loc[data.name_provided_probability < THRESHOLD, 'names_extract'] = ''
 
+    # Eliminate names when its not likely that any are valid
+    LOWER_BOUND = .4 #THRESHOLD
+    UPPER_BOUND = .75 #(1 - THRESHOLD)
+    MID_BOUND = .5
+    triplers = data.loc[
+            (data.tripler_probability > UPPER_BOUND) &
+            ((data.name_provided_probability > UPPER_BOUND) | (data.name_provided_probability < LOWER_BOUND)) &
+            ((data.optout_probability > UPPER_BOUND) | (data.optout_probability < LOWER_BOUND)) &
+            ((data.name_prob1 > UPPER_BOUND) | (data.name_prob1 < LOWER_BOUND)) &
+            ((data.name_prob2 > UPPER_BOUND) | (data.name_prob2 < LOWER_BOUND)) &
+            ((data.name_prob3 > UPPER_BOUND) | (data.name_prob3 < LOWER_BOUND))
+            ]
+    triplers['is_tripler'] = 'yes'
+    triplers.loc[triplers.name_provided_probability < UPPER_BOUND, 'names_extract'] = ''
+    triplers['opted_out'] = np.where(triplers.optout_probability < UPPER_BOUND, 'no', 'yes')
+    triplers['wrong_number'] = np.where(triplers.wrongnumber_probability < UPPER_BOUND, 'no', 'yes')
+    triplers = triplers[['ConversationId', 'contact_phone', 
+                         'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
+
+    review = data.loc[
+            ((data.tripler_probability < UPPER_BOUND) & (data.tripler_probability > LOWER_BOUND)) |
+            ((data.name_provided_probability < UPPER_BOUND) & (data.name_provided_probability > LOWER_BOUND)) |
+            ((data.optout_probability < UPPER_BOUND) & (data.optout_probability > LOWER_BOUND)) |
+            ((data.name_prob1 < UPPER_BOUND) & (data.name_prob1 > LOWER_BOUND)) |
+            ((data.name_prob2 < UPPER_BOUND) & (data.name_prob2 > LOWER_BOUND)) |
+            ((data.name_prob3 < UPPER_BOUND) & (data.name_prob3 > LOWER_BOUND))
+            ]
+    review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
+    review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''
+    review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
+    review['wrong_number'] = np.where(review.wrongnumber_probability < MID_BOUND, 'no', 'yes')
+    review = review[['ConversationId', 'contact_phone', 
+                     'voterResponse', 'voterFinal', 'voterPost',
+                     'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
+    
     # Write out annotated file
-    data.to_csv(Path(home, args.output_file), index = False)
+    triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
+    review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description=(" ".join(__doc__.split("\n")[2:6])))
@@ -305,21 +343,15 @@ if __name__ == "__main__":
         "-f", "--home_folder", help="Location of home directory", type=str, required=False, default="./"
     )
     PARSER.add_argument(
-        "-d", "--data_file", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
+        "-d", "--input_data_filename", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
     )
     PARSER.add_argument(
-        "-o", "--output_file", help="File name to dump output", type=str, required=False, default="testdata_annotated.csv"
+        "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='sms_triplers_annotated.csv'
     )
     PARSER.add_argument(
-        "-c", "--census_data_file", help="File name for US census data", type=str, required=False, default="census_first_names_all.csv"
+        "-m", "--manual_review_filename", help="File name to dump output", type=str, required=False, default='sms_manual_review.csv'
     )
     PARSER.add_argument(
-        "-e", "--english_data_file", help="File name for english language", type=str, required=False, default="english.csv"
-    )
-    PARSER.add_argument(
-        "-p", "--pickle_file", help="File name for pickled models", type=str, required=False, default="annotation_models.pkl"
-    )
-    PARSER.add_argument(
-        "-t", "--threshold_name_prob", help="Threshold probability to use when reporting possible extracted names", type=float, required=False, default=0.3
+        "-t", "--threshold_name_prob", help="Threshold probability to use when reporting possible extracted names", type=float, required=False, default=0.25
     )
     main(PARSER.parse_args())
