@@ -11,7 +11,7 @@ import pandas as pd
 from utilities import clean_labeled_names
 
 def main(args):
-    
+
     # Set home directory
     home = Path(args.home_folder)
     DATA_FILE = Path(home, "Input_Data", args.data_file)
@@ -20,13 +20,14 @@ def main(args):
     data = pd.read_csv(DATA_FILE)
 
     # Only Retain relevant data
+    data.loc[data.names.isnull(), 'names'] = ""
     data = data.loc[~(data.names == '')][['names']]
-    
+
     # Clean Names
     data['clean_names'] = ''
     for i, row in data.iterrows():
         names = row['names']
-        data.loc[i, 'clean_names'] = clean_labeled_names(names)
+        data.loc[i, 'clean_names'] = clean_labeled_names(names, names)
 
     # Write out annotated file
     data.to_csv(Path(home, "Output_Data", args.output_file), index = False)

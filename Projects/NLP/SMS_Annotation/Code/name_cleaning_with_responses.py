@@ -21,13 +21,14 @@ def main(args):
     data = pd.read_csv(DATA_FILE)
 
     # Fix NA Values
+    data.loc[data.tripleMessage.isnull(), 'tripleMessage'] = ""
     data.loc[data.voterResponse.isnull(), 'voterResponse'] = ""
     data.loc[data.voterFinal.isnull(), 'voterFinal'] = ""
     data.loc[data.voterPost.isnull(), 'voterPost'] = ""
     data.loc[data.names.isnull(), 'names'] = ""
 
     # Only Retain relevant data
-    data = data.loc[~(data.names == '')][['names', 'voterResponse', 'voterFinal', 'voterPost']]
+    data = data.loc[~(data.names == '')][['names', 'voterResponse', 'voterFinal', 'voterPost', 'tripleMessage']]
     
     # Clean Names
     data['clean_names'] = ''
@@ -49,6 +50,6 @@ if __name__ == "__main__":
         "-d", "--data_file", help="Name of of aggregated message file", type=str, required=False, default="labeled_agg.csv"
     )
     PARSER.add_argument(
-        "-o", "--output_file", help="File name to dump output", type=str, required=False, default="labeled_names_cleaned_no_response.csv"
+        "-o", "--output_file", help="File name to dump output", type=str, required=False, default="labeled_names_cleaned_with_response.csv"
     )
     main(PARSER.parse_args())

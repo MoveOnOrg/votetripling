@@ -21,8 +21,8 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our|step)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|partner|ma|pa|boss[a-z]+|follower|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|girlfriend|boyfriend|neighbo[a-z]+|in[ -]?law)[s]*\\b"
-EXCLUDE = "\\b(kamala|biden|member|trump|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
+RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|ma|pa|boss[a-z]+|follower|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|girlfriend|boyfriend|neighbo[a-z]+|in[ -]?law)[s]*\\b"
+EXCLUDE = "\\b(everyone|kamala|biden|member[s]*|trump|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 
@@ -50,7 +50,8 @@ def get_list(lst, index):
         return lst[index]
 
 def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b'):
-    noNewLine = re.sub(NEW_LINE_REG, " ", string)
+    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", string)
+    noNewLine = re.sub(NEW_LINE_REG, " ", replaceSpecials)
     if splitCamel:
         camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", noNewLine)
     else:

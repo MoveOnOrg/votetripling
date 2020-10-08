@@ -96,7 +96,7 @@ def main(args):
             ((data.name_prob1 > UPPER_BOUND) | (data.name_prob1 < LOWER_BOUND)) &
             ((data.name_prob2 > UPPER_BOUND) | (data.name_prob2 < LOWER_BOUND)) &
             ((data.name_prob3 > UPPER_BOUND) | (data.name_prob3 < LOWER_BOUND))
-            ]
+            ].copy()
     triplers['is_tripler'] = 'yes'
     triplers.loc[triplers.name_provided_probability < UPPER_BOUND, 'names_extract'] = ''
     triplers['opted_out'] = np.where(triplers.optout_probability < UPPER_BOUND, 'no', 'yes')
@@ -112,7 +112,7 @@ def main(args):
             ((data.name_prob1 < UPPER_BOUND) & (data.name_prob1 > LOWER_BOUND)) |
             ((data.name_prob2 < UPPER_BOUND) & (data.name_prob2 > LOWER_BOUND)) |
             ((data.name_prob3 < UPPER_BOUND) & (data.name_prob3 > LOWER_BOUND))
-            ]
+            ].copy()
     review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''
     review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
@@ -122,6 +122,8 @@ def main(args):
                      'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
     
     # Write out annotated files
+    print(Path(home, "Output_Data", args.output_filename))
+    print(Path(home, "Output_Data", args.manual_review_filename))
     triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
     review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
@@ -134,9 +136,9 @@ if __name__ == "__main__":
         "-d", "--input_data_filename", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
     )
     PARSER.add_argument(
-        "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='van_cleaned.csv'
+        "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='sms_triplers.csv'
     )
     PARSER.add_argument(
-        "-m", "--manual_review_filename", help="File name to dump output", type=str, required=False, default='van_manual_review.csv'
+        "-m", "--manual_review_filename", help="File name to dump output", type=str, required=False, default='sms_manual_review.csv'
     )
     main(PARSER.parse_args())
