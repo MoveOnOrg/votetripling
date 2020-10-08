@@ -1,7 +1,8 @@
 # votetripling
 This document describes how to use 4 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.
   
-1. I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
+## SMS Aggregation
+**Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
   
 **Inputs:**
 Add a csv  to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
@@ -27,7 +28,8 @@ A file with a single row representing each text message conversation, including 
 - *finalAffirmResponse* boolean for presence of a scripted follow up affirmation by text banker
   
   
-2. I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
+## SMS Conversation Categorization and Name Extraction
+**Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
   
 **Inputs:**
 Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.   
@@ -57,7 +59,8 @@ b. A file of conversations for manual review, with the following fields:
 - *names_extract* guess for what names (if any) were provided by this person as tripling targets (to be reviewed)
 
   
-3. I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
+## Text Banker Log Cleaning
+**Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
   
 **Inputs:**
 Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
@@ -69,7 +72,8 @@ In this directory, run `python3 Code/name_cleaning.py -d [input_filename]`
 A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
   
   
-4. I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
+## Text Banker Log Cleaning (utilizing text message conversation)
+**Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
   
 **Inputs:**
 Add a csv to the Input_Data folder. 
@@ -83,7 +87,8 @@ In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_f
 A File with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
   
   
-5. I have a VAN Export and I need to extract any tripling target names from the note text.
+## VAN Export Cleaning
+**Use Case:** I have a VAN Export and I need to extract any tripling target names from the note text.
 
 **Inputs:**
 Add a csv to the Input_Data folder. This csv file must contain the following columns:
