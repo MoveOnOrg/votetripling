@@ -38,8 +38,8 @@ Add a csv to the Input_Data folder. This csv file must be of the same format as 
 In this directory, run `python3 Code/annotate_conversations.py -d [input_filename]`. 
 
 **Outputs:**
-This script will output two files:
-a. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+This script will output two files:  
+1. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *is_tripler* did this person agree to be a tripler ('yes' for everyone in this file)
@@ -47,7 +47,7 @@ a. A file of triplers. For each tripler, we provide the following fields (each r
 - *wrong_number* did we have the wrong number for this person
 - *names_extract* what names (if any) were provided by this person as tripling targets
 
-b. A file of conversations for manual review, with the following fields:
+2. A file of conversations for manual review, with the following fields:
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
@@ -100,12 +100,12 @@ Add a csv to the Input_Data folder. This csv file must contain the following col
 In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`  
 
 **Outputs:**
-This script will output two files:
-a. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+This script will output two files:  
+1. A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *VANID* a unique identifier for the conversation
 - *names_extract* the extracted names
 
-b. A file of conversations for manual review, with the following fields:
+2. A file of conversations for manual review, with the following fields:
 - *VANID* a unique identifier for the conversation
 - *ContactName* a unique identifier for the conversation
 - *NoteText* free text possibly including names of tripling targets
