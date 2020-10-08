@@ -5,11 +5,11 @@ This document describes how to use 5 versions of name extraction scripts for vot
 - Make sure you have python 3 with anaconda (https://www.anaconda.com/) configured locally
 - Clone this repository
 - Ensure you have all of the following packages. Each can be installed with the listed command
--- Spacy `pip install -U spacy`  
+* Spacy `pip install -U spacy`  
 `python -m spacy download en_core_web_sm`
--- Pathlib `pip install pathlib`
--- Levenshtein `pip install python-Levenshtein`
--- NLTK `pip install nltk`
+* Pathlib `pip install pathlib`
+* Levenshtein `pip install python-Levenshtein`
+* NLTK `pip install nltk`
 
 ## Getting Started
 Find your use case below and add your input data to the appropriate place, then run the specified python script.
