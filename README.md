@@ -1,5 +1,8 @@
-# votetripling
-This document describes how to use 4 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.
+# Votetripling Extraction Script Instructions
+This document describes how to use 5 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.
+All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`
+All input data should be added to `Projects/NLP/SMS_Annotation/Input_Data`
+All output data (after running a script) will be found in `Projects/NLP/SMS_Annotation/Output_Data`
   
 ## SMS Aggregation
 **Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
