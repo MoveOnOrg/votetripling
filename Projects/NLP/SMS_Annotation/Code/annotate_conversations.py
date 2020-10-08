@@ -11,9 +11,9 @@ import numpy as np
 import pickle
 from pathlib import Path
 from utilities import featurize_conversation, add_token_features
-
-def main(args):
     
+def main(args):
+
     # Set home directory
     home = Path(args.home_folder)
     DATA_FILE = Path(home, "Input_Data", args.input_data_filename)
@@ -22,6 +22,7 @@ def main(args):
     LOWER_BOUND = .4 
     UPPER_BOUND = .75
     MID_BOUND = .5
+
 
     print("Loading Models...")
 
@@ -32,7 +33,7 @@ def main(args):
         response_vectorizer = pickle.load(f)
         final_vectorizer = pickle.load(f)
         post_vectorizer = pickle.load(f)
-    
+
         # Logistic Regressions
         token_model = pickle.load(f)
         model_tripler = pickle.load(f)
@@ -42,13 +43,13 @@ def main(args):
         token_counter = pickle.load(f)
 
     print("Loading Data...")
-    
+
     # US Census Data
     census = pd.read_csv(Path(home, "Utility_Data", "census_first_names_all.csv"))
     census_dict = {}
     for i, row in census.iterrows():
         census_dict[row['name']] = np.log(row['census_count'])
-       
+
     # Last Name Data
     census_last = pd.read_csv(Path(home, "Utility_Data", "census_last_names_all.csv"))
     census_last_dict = {}
@@ -60,20 +61,20 @@ def main(args):
     english_dict = {}
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
-    
+
     # Aggregated Message Data
     data = pd.read_csv(DATA_FILE, encoding='latin1')
 
     print("Cleaning and Featurizing...")
-    
+
     # Fix NA Values
     data.loc[data.voterResponse.isnull(), 'voterResponse'] = ""
     data.loc[data.voterFinal.isnull(), 'voterFinal'] = ""
     data.loc[data.voterPost.isnull(), 'voterPost'] = ""
-    
+
     # Number of tokens in final response
     data['num_tokens'] = data.voterFinal.str.count(" ") + ~(data.voterFinal == "")
-    
+
     # Build Token Features
     data = add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = LOWER_BOUND)
 
@@ -81,7 +82,7 @@ def main(args):
     X = featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer)
 
     print("Annotating with Predictions...")
-    
+
     # Add Predictions
     data['tripler_probability'] = model_tripler.predict_proba(X)[:, 1]
     data['name_provided_probability'] = model_name.predict_proba(X)[:, 1]
@@ -122,8 +123,6 @@ def main(args):
                      'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
     
     # Write out annotated files
-    print(Path(home, "Output_Data", args.output_filename))
-    print(Path(home, "Output_Data", args.manual_review_filename))
     triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
     review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
