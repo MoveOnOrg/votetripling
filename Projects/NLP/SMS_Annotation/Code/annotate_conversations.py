@@ -26,7 +26,7 @@ def main(args):
     print("Loading Models...")
 
 
-    pickle_file = Path(home, "annotation_models.pkl")
+    pickle_file = Path(home, "Models", "annotation_models.pkl")
     with open(pickle_file, "rb") as f:
         # N-Gram Featurizers
         response_vectorizer = pickle.load(f)
@@ -44,19 +44,19 @@ def main(args):
     print("Loading Data...")
     
     # US Census Data
-    census = pd.read_csv(Path(home, args.census_data_file))
+    census = pd.read_csv(Path(home, "Utility_Data", "census_first_names_all.csv"))
     census_dict = {}
     for i, row in census.iterrows():
         census_dict[row['name']] = np.log(row['census_count'])
        
     # Last Name Data
-    census_last = pd.read_csv(Path(home, "census_last_names_all.csv"))
+    census_last = pd.read_csv(Path(home, "Utility_Data", "census_last_names_all.csv"))
     census_last_dict = {}
     for i, row in census_last.iterrows():
         census_last_dict[row['name']] = np.log(row['census_count'])
 
     # US Word Freq Data
-    english = pd.read_csv(Path(home, args.english_data_file))
+    english = pd.read_csv(Path(home, "Utility_Data", "english.csv"))
     english_dict = {}
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
@@ -121,8 +121,9 @@ def main(args):
                      'voterResponse', 'voterFinal', 'voterPost',
                      'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
     
-    # Write out annotated file
-    data.to_csv(Path(home, args.output_file), index = False)
+    # Write out annotated files
+    triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
+    review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description=(" ".join(__doc__.split("\n")[2:6])))
@@ -130,18 +131,12 @@ if __name__ == "__main__":
         "-f", "--home_folder", help="Location of home directory", type=str, required=False, default="./"
     )
     PARSER.add_argument(
-        "-d", "--data_file", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
+        "-d", "--input_data_filename", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
     )
     PARSER.add_argument(
-        "-o", "--output_file", help="File name to dump output", type=str, required=False, default="testdata_annotated.csv"
+        "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='van_cleaned.csv'
     )
     PARSER.add_argument(
-        "-c", "--census_data_file", help="File name for US census data", type=str, required=False, default="census_first_names_all.csv"
-    )
-    PARSER.add_argument(
-        "-e", "--english_data_file", help="File name for english language", type=str, required=False, default="english.csv"
-    )
-    PARSER.add_argument(
-        "-p", "--pickle_file", help="File name for pickled models", type=str, required=False, default="annotation_models.pkl"
+        "-m", "--manual_review_filename", help="File name to dump output", type=str, required=False, default='van_manual_review.csv'
     )
     main(PARSER.parse_args())

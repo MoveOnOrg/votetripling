@@ -111,7 +111,7 @@ def main(args):
     triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['VANID', 'names_extract']]
     review = van.loc[van.manual_review == True][['VANID', 'ContactName', 'NoteText', 'names_extract']]
     
-    # Write out annotated file
+    # Write out annotated files
     triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
     review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
