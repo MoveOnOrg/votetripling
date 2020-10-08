@@ -19,13 +19,13 @@ import numpy as np
 import pickle
 from pathlib import Path
 from utilities import cleanString, extract_good_tokens, \
-                    get_token_features, get_doc, normalize_token
+                    get_token_features, get_doc, normalize_token, \
+                    load_civis, load_flat_file, export_civis
     
 def main(args):
 
     # Set home directory
     home = Path(args.home_folder)
-    DATA_FILE = Path(home, "Input_Data", args.input_data_filename)
     
     # Thresholds for manual review and labeling
     LOWER_BOUND = .4 
@@ -69,9 +69,13 @@ def main(args):
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
 
-    # Aggregated Message Data
-    van = pd.read_csv(DATA_FILE, encoding='latin1')
-    
+    # Read in data either from flat file or civis
+    if args.use_civis:
+        home = Path("./Projects/NLP/SMS_Annotation/")
+        van = load_civis("van_export")
+    else:
+        van = load_flat_file(home, args.input_data_filename)
+
     # Clean NA values
     van.loc[van.NoteText.isnull(), 'NoteText'] = ""
     van.loc[van.ContactName.isnull(), 'ContactName'] = ""
@@ -112,8 +116,12 @@ def main(args):
     review = van.loc[van.manual_review == True][['VANID', 'ContactName', 'NoteText', 'names_extract']]
     
     # Write out annotated files
-    triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
-    review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
+    if args.use_civis:
+        export_civis(triplers, args.output_filename.replace(".csv", ""))
+        export_civis(review, args.manual_review_filename.replace(".csv", ""))
+    else:
+        triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
+        review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description=(" ".join(__doc__.split("\n")[2:6])))
@@ -128,5 +136,8 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "-m", "--manual_review_filename", help="File name to dump output", type=str, required=False, default='van_manual_review.csv'
+    )
+    PARSER.add_argument(
+        '-c', action='store_true', default=False, dest='use_civis', help='Whether to use civis for i/o'
     )
     main(PARSER.parse_args())

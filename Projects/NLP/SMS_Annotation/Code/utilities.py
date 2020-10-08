@@ -12,6 +12,7 @@ from nltk import SnowballStemmer
 from scipy.sparse import hstack
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 ################################
 # Define Global Objects
@@ -26,6 +27,29 @@ EXCLUDE = "\\b(everyone|kamala|biden|member[s]*|trump|donald|melania|ivanka|idk|
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 
+################################
+# Data Loading
+################################
+
+def load_flat_file(home, filename):
+    DATA_FILE = Path(home, "Input_Data", filename)
+    data = pd.read_csv(DATA_FILE)
+    data.columns = [c.lower() for c in data.columns]
+    return data
+
+def load_civis(tablename):
+    import civis
+    data = civis.io.read_civis(table="above_the_wall." + tablename, 
+                               database="Vote Tripling", 
+                               use_pandas=True)
+    return data
+
+def export_civis(df, tablename):
+    import civis
+    civis.io.dataframe_to_civis(df, 
+                                database="Vote Tripling", 
+                                table="above_the_wall." + tablename)
+    
 ################################
 # Basic Cleaning Functions
 ################################
