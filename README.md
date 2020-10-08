@@ -10,20 +10,20 @@ Open the script aggregate_text_messages.R in RStudioo and follow the instruction
 
 **Outputs:**
 A file with a single row representing each text message conversation, including the following fields
--*ConversationId* a unique identifier for the conversation
--*contact_phone* the phone number of the target 
--*totalMessages* the total number of messages exchanged
--*tripleMessage* initial message sent from the text banker to the target
--*voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
--*tripleResponse* follow up message sent from the text banker to the target
--*voterFinal* the final follow up message sent by the target (generally where they provide names)
--*tripleFinal* final follow up sent by text banker
--*voterPost* post script from the target (generally a thank you or good luck)
--*noResponse* boolean for whether there was no response
--*negResponse* boolean for generally negative or discouraging terms (sorry, no, etc.)
--*posResponse* boolean for generally positive or encouraging terms
--*affirmResponse* boolean for presence of a scripted affirmation by text banker
--*finalAffirmResponse* boolean for presence of a scripted follow up affirmation by text banker
+- *ConversationId* a unique identifier for the conversation
+- *contact_phone* the phone number of the target 
+- *totalMessages* the total number of messages exchanged
+- *tripleMessage* initial message sent from the text banker to the target
+- *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
+- *tripleResponse* follow up message sent from the text banker to the target
+- *voterFinal* the final follow up message sent by the target (generally where they provide names)
+- *tripleFinal* final follow up sent by text banker
+- *voterPost* post script from the target (generally a thank you or good luck)
+- *noResponse* boolean for whether there was no response
+- *negResponse* boolean for generally negative or discouraging terms (sorry, no, etc.)
+- *posResponse* boolean for generally positive or encouraging terms
+- *affirmResponse* boolean for presence of a scripted affirmation by text banker
+- *finalAffirmResponse* boolean for presence of a scripted follow up affirmation by text banker
 
 2. I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.
 **Inputs:**
@@ -36,23 +36,23 @@ In this directory, run `python3 annotate_conversations.py -d [input_filename]`
 This script will output two files:
 a. A file of triplers. For each tripler, we provide the following fields:
 A file with a single row representing each text message conversation, including the following fields
--*ConversationId* a unique identifier for the conversation
--*contact_phone* the phone number of the target 
--*is_tripler* did this person agree to be a tripler ('yes' for everyone in this file)
--*opted_out* did this person opt out of future messages
--*wrong_number* did we have the wrong number for this person
--*names_extract* what names (if any) were provided by this person as tripling targets
+- *ConversationId* a unique identifier for the conversation
+- *contact_phone* the phone number of the target 
+- *is_tripler* did this person agree to be a tripler ('yes' for everyone in this file)
+- *opted_out* did this person opt out of future messages
+- *wrong_number* did we have the wrong number for this person
+- *names_extract* what names (if any) were provided by this person as tripling targets
 
 b. A file of conversations for manual review, with the following fields:
--*ConversationId* a unique identifier for the conversation
--*contact_phone* the phone number of the target 
--*voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
--*voterFinal* the final follow up message sent by the target (generally where they provide names)
--*voterPost* post script from the target (generally a thank you or good luck)
--*is_tripler* guess for did this person agree to be a tripler
--*opted_out* guess for did this person opt out of future messages
--*wrong_number* guess for did we have the wrong number for this person
--*names_extract* guess for what names (if any) were provided by this person as tripling targets
+- *ConversationId* a unique identifier for the conversation
+- *contact_phone* the phone number of the target 
+- *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
+- *voterFinal* the final follow up message sent by the target (generally where they provide names)
+- *voterPost* post script from the target (generally a thank you or good luck)
+- *is_tripler* guess for did this person agree to be a tripler
+- *opted_out* guess for did this person opt out of future messages
+- *wrong_number* guess for did we have the wrong number for this person
+- *names_extract* guess for what names (if any) were provided by this person as tripling targets
 
 
 3. I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.
