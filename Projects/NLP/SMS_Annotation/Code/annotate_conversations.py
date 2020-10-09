@@ -21,6 +21,8 @@ def main(args):
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
         data = load_civis("labeled_agg")
+        for col in ['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse']:
+            data[col] = data[col].astype(bool)
     else:
         data = load_flat_file(home, args.input_data_filename)
     
