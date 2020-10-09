@@ -77,8 +77,8 @@ def main(args):
         english_dict[row['name']] = row['freq']
 
     # Clean NA values
-    van.loc[van.NoteText.isnull(), 'notetext'] = ""
-    van.loc[van.ContactName.isnull(), 'contactname'] = ""
+    van.loc[van.notetext.isnull(), 'notetext'] = ""
+    van.loc[van.contactname.isnull(), 'contactname'] = ""
 
     # Get Extracted Names
     names_extract = []
