@@ -23,10 +23,10 @@ def main(args):
         data = load_flat_file(home, args.data_file)
 
     # Fix NA Values
-    data.loc[data.tripleMessage.isnull(), 'triplemessage'] = ""
-    data.loc[data.voterResponse.isnull(), 'voterresponse'] = ""
-    data.loc[data.voterFinal.isnull(), 'voterfinal'] = ""
-    data.loc[data.voterPost.isnull(), 'voterpost'] = ""
+    data.loc[data.triplemessage.isnull(), 'triplemessage'] = ""
+    data.loc[data.voterresponse.isnull(), 'voterresponse'] = ""
+    data.loc[data.voterfinal.isnull(), 'voterfinal'] = ""
+    data.loc[data.voterpost.isnull(), 'voterpost'] = ""
     data.loc[data.names.isnull(), 'names'] = ""
 
     # Only Retain relevant data

@@ -71,12 +71,13 @@ def main(args):
     print("Cleaning and Featurizing...")
 
     # Fix NA Values
-    data.loc[data.voterResponse.isnull(), 'voterresponse'] = ""
-    data.loc[data.voterFinal.isnull(), 'voterfinal'] = ""
-    data.loc[data.voterPost.isnull(), 'voterpost'] = ""
+    data.loc[data.triplemessage.isnull(), 'triplemessage'] = ""
+    data.loc[data.voterresponse.isnull(), 'voterresponse'] = ""
+    data.loc[data.voterfinal.isnull(), 'voterfinal'] = ""
+    data.loc[data.voterpost.isnull(), 'voterpost'] = ""
 
     # Number of tokens in final response
-    data['num_tokens'] = data.voterFinal.str.count(" ") + ~(data.voterFinal == "")
+    data['num_tokens'] = data.voterfinal.str.count(" ") + ~(data.voterfinal == "")
 
     # Build Token Features
     data = add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = LOWER_BOUND)
