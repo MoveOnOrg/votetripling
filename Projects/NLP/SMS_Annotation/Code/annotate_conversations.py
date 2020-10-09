@@ -16,6 +16,13 @@ def main(args):
 
     # Set home directory
     home = Path(args.home_folder)
+
+    # Read in data either from flat file or civis
+    if args.use_civis:
+        home = Path("./Projects/NLP/SMS_Annotation/")
+        data = load_civis("labeled_agg")
+    else:
+        data = load_flat_file(home, args.input_data_filename)
     
     # Thresholds for manual review and labeling
     LOWER_BOUND = .4 
@@ -60,13 +67,6 @@ def main(args):
     english_dict = {}
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
-
-    # Read in data either from flat file or civis
-    if args.use_civis:
-        home = Path("./Projects/NLP/SMS_Annotation/")
-        data = load_civis("labeled_agg")
-    else:
-        data = load_flat_file(home, args.input_data_filename)
 
     print("Cleaning and Featurizing...")
 
