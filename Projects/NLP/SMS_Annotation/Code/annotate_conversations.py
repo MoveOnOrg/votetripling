@@ -108,7 +108,7 @@ def main(args):
     triplers.loc[triplers.name_provided_probability < UPPER_BOUND, 'names_extract'] = ''
     triplers['opted_out'] = np.where(triplers.optout_probability < UPPER_BOUND, 'no', 'yes')
     triplers['wrong_number'] = np.where(triplers.wrongnumber_probability < UPPER_BOUND, 'no', 'yes')
-    triplers = triplers[['conversationId', 'contact_phone', 
+    triplers = triplers[['conversationid', 'contact_phone', 
                          'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
 
     # Create Dataset for manual review
@@ -124,7 +124,7 @@ def main(args):
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''
     review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
     review['wrong_number'] = np.where(review.wrongnumber_probability < MID_BOUND, 'no', 'yes')
-    review = review[['ConversationId', 'contact_phone', 
+    review = review[['conversationid', 'contact_phone', 
                      'voterresponse', 'voterfinal', 'voterpost',
                      'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
     
