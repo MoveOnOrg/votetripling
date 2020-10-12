@@ -20,7 +20,7 @@ def main(args):
     # Read in data either from flat file or civis
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
-        data = load_civis("testdata_aggregated")
+        data = load_civis(args.input_data_filename.replace(".csv", ""))
         for col in ['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse']:
             data[col] = data[col].astype(bool)
     else:

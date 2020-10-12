@@ -17,7 +17,7 @@ def main(args):
     # Read in data either from flat file or civis
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
-        data = load_civis("labeled_agg")
+        data = load_civis(args.data_file.replace(".csv", ""))
     else:
         data = load_flat_file(home, args.data_file)
 
