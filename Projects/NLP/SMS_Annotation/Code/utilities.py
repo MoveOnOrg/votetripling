@@ -37,17 +37,17 @@ def load_flat_file(home, filename):
     data.columns = [c.lower() for c in data.columns]
     return data
 
-def load_civis(tablename):
+def load_civis(tablename, db = "Vote Tripling"):
     import civis
     data = civis.io.read_civis(table=tablename, 
-                               database="Vote Tripling", 
+                               database=db, 
                                use_pandas=True)
     return data
 
-def export_civis(df, tablename):
+def export_civis(df, tablename, db = "Vote Tripling"):
     import civis
     civis.io.dataframe_to_civis(df, 
-                                database="Vote Tripling", 
+                                database=db, 
                                 table=tablename)
     
 ################################

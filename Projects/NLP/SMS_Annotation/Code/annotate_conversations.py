@@ -20,7 +20,7 @@ def main(args):
     # Read in data either from flat file or civis
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
-        data = load_civis(args.input_data_filename.replace(".csv", ""))
+        data = load_civis(args.input_data_filename.replace(".csv", ""), args.database_name)
         for col in ['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse']:
             data[col] = data[col].astype(bool)
     else:
@@ -130,8 +130,8 @@ def main(args):
     
     # Write out annotated files
     if args.use_civis:
-        export_civis(triplers, args.output_filename.replace(".csv", ""))
-        export_civis(review, args.manual_review_filename.replace(".csv", ""))
+        export_civis(triplers, args.output_filename.replace(".csv", ""), args.database_name)
+        export_civis(review, args.manual_review_filename.replace(".csv", ""), args.database_name)
     else:
         triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
         review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
@@ -143,7 +143,10 @@ if __name__ == "__main__":
         "-f", "--home_folder", help="Location of home directory", type=str, required=False, default="./"
     )
     PARSER.add_argument(
-        "-d", "--input_data_filename", help="Name of of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
+        "-d", "--database_name", help="Name of database", type=str, required=False, default="Vote_Tripling"
+    )
+    PARSER.add_argument(
+        "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
     )
     PARSER.add_argument(
         "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='sms_triplers.csv'
