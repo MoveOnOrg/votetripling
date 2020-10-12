@@ -39,7 +39,7 @@ def load_flat_file(home, filename):
 
 def load_civis(tablename):
     import civis
-    data = civis.io.read_civis(table="above_the_wall." + tablename, 
+    data = civis.io.read_civis(table=tablename, 
                                database="Vote Tripling", 
                                use_pandas=True)
     return data
@@ -48,7 +48,7 @@ def export_civis(df, tablename):
     import civis
     civis.io.dataframe_to_civis(df, 
                                 database="Vote Tripling", 
-                                table="above_the_wall." + tablename)
+                                table=tablename)
     
 ################################
 # Basic Cleaning Functions
