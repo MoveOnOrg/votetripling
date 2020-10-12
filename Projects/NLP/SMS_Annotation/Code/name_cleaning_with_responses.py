@@ -52,7 +52,7 @@ if __name__ == "__main__":
         "-f", "--home_folder", help="Location of home directory", type=str, required=False, default="./"
     )
     PARSER.add_argument(
-        "-d", "--database_name", help="Name of database", type=str, required=False, default="Vote_Tripling"
+        "-d", "--database_name", help="Name of database", type=str, required=False, default="Vote Tripling"
     )
     PARSER.add_argument(
         "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="labeled_agg.csv"
