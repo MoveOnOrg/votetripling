@@ -16,6 +16,9 @@ def main(args):
 
     # Set home directory
     home = Path(args.home_folder)
+    
+    print(args.database_name)
+    print(args.input_data_filename)
 
     # Read in data either from flat file or civis
     if args.use_civis:

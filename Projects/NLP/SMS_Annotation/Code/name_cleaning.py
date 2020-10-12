@@ -17,9 +17,9 @@ def main(args):
     # Read in data either from flat file or civis
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
-        data = load_civis(args.data_file.replace(".csv", ""))
+        data = load_civis(args.input_data_filename.replace(".csv", ""), args.database_name)
     else:
-        data = load_flat_file(home, args.data_file)
+        data = load_flat_file(home, args.input_data_filename)
 
 
     # Only Retain relevant data
@@ -34,7 +34,7 @@ def main(args):
 
     # Write out annotated file
     if args.use_civis:
-        export_civis(data, args.output_file.replace(".csv", ""))
+        export_civis(data, args.output_file.replace(".csv", ""), args.database_name)
     else:
         data.to_csv(Path(home, "Output_Data", args.output_file), index = False)
 
@@ -44,7 +44,10 @@ if __name__ == "__main__":
         "-f", "--home_folder", help="Location of home directory", type=str, required=False, default="./"
     )
     PARSER.add_argument(
-        "-d", "--data_file", help="Name of of aggregated message file", type=str, required=False, default="labeled_agg.csv"
+        "-d", "--database_name", help="Name of database", type=str, required=False, default="Vote_Tripling"
+    )
+    PARSER.add_argument(
+        "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="labeled_agg.csv"
     )
     PARSER.add_argument(
         "-o", "--output_file", help="File name to dump output", type=str, required=False, default="labeled_names_cleaned_no_response.csv"
