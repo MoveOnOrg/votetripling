@@ -30,7 +30,7 @@ def main(args):
     # Read in data either from flat file or civis
     if args.use_civis:
         home = Path("./Projects/NLP/SMS_Annotation/")
-        van = load_civis("van_export")
+        van = load_civis(args.input_data_filename.replace(".csv", ""))
     else:
         van = load_flat_file(home, args.input_data_filename)
     
