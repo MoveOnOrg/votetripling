@@ -1,30 +1,14 @@
 # Votetripling Extraction Script Instructions
-This document describes how to use 5 versions of name extraction scripts for vote tripling SMS data. Please find your use case below and follow the instructions.  
-
-## Requirements
-- Make sure you have python 3 with anaconda (https://www.anaconda.com/) configured locally
-- Clone this repository
-- Ensure you have all of the following packages. Each can be installed with the listed command(s)
-  - Spacy `pip install -U spacy`  
-         `python -m spacy download en_core_web_sm`
-  - Pathlib `pip install pathlib`
-  - Levenshtein `pip install python-Levenshtein`
-  - NLTK `pip install nltk`
-
-## Getting Started
-Find your use case below and add your input data to the appropriate place, then run the specified python script.
-All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`  
-All input data should be added to `Projects/NLP/SMS_Annotation/Input_Data`  
-All output data (after running a script) will be found in `Projects/NLP/SMS_Annotation/Output_Data`  
+This document describes how to use 5 different scripts for cleaning/aggregating vote tripling SMS data. Please find your use case below and follow the instructions.  
   
 ## SMS Aggregation
 **Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
   
 **Inputs:**
-Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
+Add a dataset to civis. This data should consist of raw individual SMS messages, not grouped by conversation. The columns needed will be specified within the R script below.
 
 **Instructions:**
-Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
+Open the script aggregate_text_messages.R and follow the instructions in that script to aggregate messages into a single row per conversation
 
 **Outputs:**
 A file (filename specified by you in the R script) with a single row representing each text message conversation, including the following fields
@@ -48,14 +32,14 @@ A file (filename specified by you in the R script) with a single row representin
 **Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
   
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.   
+First follow the instructions above in the **SMS Aggregation** section. The output of that step will provide a dataset which will be used as input here.
 
 **Instructions:**
-In this directory, run `python3 Code/annotate_conversations.py -d [input_filename]`. 
+In the _VoteTripling.org Pledge Cleaning Scripts_ project, run the container script titled _2. Pledges from SMS Transcripts_. Provide the name of your input dataset and the names of your output datasets (including schema names) as parameters.
 
 **Outputs:**
-This script will output two files:  
-1. A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
+This script will output two datasets:  
+1. A file of triplers called `sms_triplers`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *is_tripler* did this person agree to be a tripler ('yes' for everyone in this file)
@@ -63,7 +47,7 @@ This script will output two files:
 - *wrong_number* did we have the wrong number for this person
 - *names_extract* what names (if any) were provided by this person as tripling targets
 
-2. A file of conversations for manual review called `sms_manual_review.csv`, with the following fields:
+2. A file of conversations for manual review called `sms_manual_review`, with the following fields:
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
 - *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
@@ -79,49 +63,48 @@ This script will output two files:
 **Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
   
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
+Add a dataset to civis containing the column 'names' containing the names of tripler targets logged by a text banker from SMS conversations.
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning.py -d [input_filename]`  
+In the _VoteTripling.org Pledge Cleaning Scripts_ project, run the container script titled _3. Pledges from Generic Volunteer Data Entry._. Provide the name of your input dataset and the names of your output dataset (including schema names) as parameters.
 
 **Outputs:**
-A File named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
+A dataset named `labeled_names_cleaned_no_response` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
   
   
 ## Text Banker Log Cleaning (utilizing text message conversation)
 **Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
   
 **Inputs:**
-Add a csv to the Input_Data folder. 
-This csv file must be of the same format as the output of the aggregation in step 1.
-This csv file must also contain column 'names' containing the names logged by a text banker.
+First follow the instructions above in the **SMS Aggregation** section. The output of that step will provide a dataset which will be used as input here.  
+Next join text banker logs to each conversation by your conversation id. Preserve all of the columns in the aggregated dataset and make sure that the text banker logs are in a column titled 'names'.
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_filename]`
+In the _VoteTripling.org Pledge Cleaning Scripts_ project, run the container script titled _4. Pledges from Generic Volunteer Data Entry and SMS Transcript_. Provide the name of your input dataset and the names of your output dataset (including schema names) as parameters.
 
 **Outputs:**
-A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
+A dataset named `labeled_names_cleaned_with_response` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
   
   
 ## VAN Export Cleaning
 **Use Case:** I have a VAN Export and I need to extract any tripling target names from the note text.
 
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must contain the following columns:
+Add a dataset to civis containing the following columns:
 - *VANID* a unique ID for this row
 - *ContactName* the name of the tripler
 - *NoteText* free text possibly including names of tripling targets
 
 **Instructions:**
-In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`  
+In the _VoteTripling.org Pledge Cleaning Scripts_ project, run the container script titled _5. Pledges from VAN Comments_. Provide the name of your input dataset and the names of your output dataset (including schema names) as parameters.
 
 **Outputs:**
-This script will output two files:  
-1. A file of triplers called `van_cleaned.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
+This script will output two datasets:  
+1. A file of triplers called `van_cleaned`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *VANID* a unique identifier for the conversation
 - *names_extract* the extracted names
 
-2. A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
+2. A file of conversations for manual review called `van_manual_review`, with the following fields:
 - *VANID* a unique identifier for the conversation
 - *ContactName* a unique identifier for the conversation
 - *NoteText* free text possibly including names of tripling targets
