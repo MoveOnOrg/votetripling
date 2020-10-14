@@ -25,7 +25,7 @@ def main(args):
         home = Path("./Projects/NLP/SMS_Annotation/")
         data = load_civis(args.input_data_filename.replace(".csv", ""), args.database_name)
         for col in ['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse']:
-            data[col] = data[col].astype(bool)
+            data[col] = (data[col] == 't').astype(bool)
     else:
         data = load_flat_file(home, args.input_data_filename)
     
@@ -115,13 +115,14 @@ def main(args):
                          'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
 
     # Create Dataset for manual review
-    review = data.loc[
-            ((data.tripler_probability < UPPER_BOUND) & (data.tripler_probability > LOWER_BOUND)) |
+    review = data.loc[(data.tripler_probability > LOWER_BOUND) & (
+            (data.tripler_probability < UPPER_BOUND) |
             ((data.name_provided_probability < UPPER_BOUND) & (data.name_provided_probability > LOWER_BOUND)) |
             ((data.optout_probability < UPPER_BOUND) & (data.optout_probability > LOWER_BOUND)) |
             ((data.name_prob1 < UPPER_BOUND) & (data.name_prob1 > LOWER_BOUND)) |
             ((data.name_prob2 < UPPER_BOUND) & (data.name_prob2 > LOWER_BOUND)) |
             ((data.name_prob3 < UPPER_BOUND) & (data.name_prob3 > LOWER_BOUND))
+            )
             ].copy()
     review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''

@@ -33,7 +33,7 @@ NEW_LINE_REG = "\\n|\n|\\\\n"
 
 def load_flat_file(home, filename):
     DATA_FILE = Path(home, "Input_Data", filename)
-    data = pd.read_csv(DATA_FILE)
+    data = pd.read_csv(DATA_FILE, encoding="latin1")
     data.columns = [c.lower() for c in data.columns]
     return data
 
@@ -166,7 +166,11 @@ def stringify_tokens(good_tokens):
         return ''
     if len(name_tokens) > 1:
         name_tokens[len(name_tokens) - 1] = 'and ' + name_tokens[len(name_tokens) - 1]
-    return ', '.join(name_tokens)
+       
+    sep = ', '
+    if len(name_tokens) == 2:
+        sep = ' '
+    return sep.join(name_tokens)
 
 # Extract the tokens with high enough probability    
 def extract_good_tokens(clean_tokens, 
