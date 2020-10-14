@@ -69,18 +69,18 @@ outputfile <- ("gz.vvv_smsresults_1005_agg3")
 #														in the 'messagedirection' column? usually outbound/outgoing
 
 aggregateMessages <- function(messages, 
-                              messageIdCol = "messageid",
-                              idCol = "conversationid", 
-                              dirCol = "messagedirection",
-                              bodyCol = "messagebody",
-                              phoneCol = "endpointareacode",
-                              inbound = "inbound",
-                              outbound = "outbound") {
+                              messageIdCol = "timestamp",
+                              idCol = "conversation_id", 
+                              dirCol = "message_direction",
+                              bodyCol = "message_body",
+                              phoneCol = "contact_phone",
+                              inbound = "incoming",
+                              outbound = "outgoing") {
   messages[, direction := tolower(eval(as.name(dirCol)))]
   messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
   messages[, by = c(idCol, dirCol), messageOrderDir := rank(eval(as.name(messageIdCol)))]
   messages[, messageOrderDirRev := messageOrder - messageOrderDir]
-  messages[, conversationid := eval(as.name(idCol))]
+  messages[, conversationid := as.character(eval(as.name(idCol)))]
   aggMessages <- messages[, by = "conversationid",
                           list(
                             contact_phone = max(eval(as.name(phoneCol))),
