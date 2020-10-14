@@ -114,16 +114,28 @@ def main(args):
     triplers = triplers[['conversationid', 'contact_phone', 
                          'is_tripler', 'opted_out', 'wrong_number', 'names_extract']]
 
+    # Create Dataset for optouts
+    optouts = data.loc[
+            (data.tripler_probability < LOWER_BOUND) & (
+            (data.optout_probability > UPPER_BOUND) |
+            (data.wrongnumber_probability > UPPER_BOUND)
+            )
+            ].copy()
+    optouts['opted_out'] = np.where(optouts.optout_probability < UPPER_BOUND, 'no', 'yes')
+    optouts['wrong_number'] = np.where(optouts.wrongnumber_probability < UPPER_BOUND, 'no', 'yes')
+    optouts = optouts[['conversationid', 'contact_phone', 'opted_out', 'wrong_number']]
+
     # Create Dataset for manual review
-    review = data.loc[(data.tripler_probability > LOWER_BOUND) & (
-            (data.tripler_probability < UPPER_BOUND) |
+    review = data.loc[
+            (data.tripler_probability > LOWER_BOUND) &
+            (
+            ((data.tripler_probability < UPPER_BOUND)) |
             ((data.name_provided_probability < UPPER_BOUND) & (data.name_provided_probability > LOWER_BOUND)) |
             ((data.optout_probability < UPPER_BOUND) & (data.optout_probability > LOWER_BOUND)) |
             ((data.name_prob1 < UPPER_BOUND) & (data.name_prob1 > LOWER_BOUND)) |
             ((data.name_prob2 < UPPER_BOUND) & (data.name_prob2 > LOWER_BOUND)) |
             ((data.name_prob3 < UPPER_BOUND) & (data.name_prob3 > LOWER_BOUND))
-            )
-            ].copy()
+            )].copy()
     review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''
     review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
@@ -135,9 +147,11 @@ def main(args):
     # Write out annotated files
     if args.use_civis:
         export_civis(triplers, args.output_filename.replace(".csv", ""), args.database_name)
+        export_civis(optouts, args.optouts_filename.replace(".csv", ""), args.database_name)
         export_civis(review, args.manual_review_filename.replace(".csv", ""), args.database_name)
     else:
         triplers.to_csv(Path(home, "Output_Data", args.output_filename), index = False, encoding = 'latin1')
+        optouts.to_csv(Path(home, "Output_Data", args.optouts_filename), index = False, encoding = 'latin1')
         review.to_csv(Path(home, "Output_Data", args.manual_review_filename), index = False, encoding = 'latin1')
 
 
@@ -151,6 +165,9 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="testdata_aggregated.csv"
+    )
+    PARSER.add_argument(
+        "-n", "--optouts_filename", help="File name to dump optouts", type=str, required=False, default='sms_opt_outs.csv'
     )
     PARSER.add_argument(
         "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='sms_triplers.csv'
