@@ -151,6 +151,9 @@ def present_tokens(clean_tokens,
              re.match(excluded, token) is not None or \
              token in triple_tokens:
              continue
+        # For initials, uppercase the whole thing
+        elif len(token) < 3:
+            token = token.upper()
         # For names, capitalize
         else:
             token = token.capitalize()
