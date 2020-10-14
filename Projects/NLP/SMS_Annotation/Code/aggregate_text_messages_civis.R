@@ -77,7 +77,7 @@ aggregateMessages <- function(messages,
                               inbound = "incoming",
                               outbound = "outgoing") {
   messages[, direction := tolower(eval(as.name(dirCol)))]
-  messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
+  messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)), ties.method = "random")]
   messages[, by = c(idCol, dirCol), messageOrderDir := rank(eval(as.name(messageIdCol)))]
   messages[, messageOrderDirRev := messageOrder - messageOrderDir]
   messages[, conversationid := as.character(eval(as.name(idCol)))]
