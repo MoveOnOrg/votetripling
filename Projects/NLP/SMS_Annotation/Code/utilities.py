@@ -58,7 +58,7 @@ def normalize_token(token):
     return re.sub("[^a-z]", "", token.lower().strip())
 
 def get_doc(voterResponse):
-    voterResponseClean = re.sub("\\n", " ", voterResponse)
+    voterResponseClean = re.sub(NEW_LINE_REG, " ", voterResponse)
     voterResponseClean = re.sub("\\.", ". ", voterResponseClean)
     voterResponseClean = re.sub(",", ", ", voterResponseClean)
     voterResponseClean = re.sub("\\&", " and ", voterResponseClean)
