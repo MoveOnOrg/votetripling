@@ -112,8 +112,8 @@ def main(args):
     van['manual_review'] = manual_review
 
     # Get those with confirmed names
-    triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['voter file vanid', 'names_extract']]
-    review = van.loc[van.manual_review == True][['voter file vanid', 'contactname', 'notetext', 'names_extract']]
+    triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['voter_file_vanid', 'names_extract']]
+    review = van.loc[van.manual_review == True][['voter_file_vanid', 'contactname', 'notetext', 'names_extract']]
     
     # Write out annotated files
     if args.use_civis:
