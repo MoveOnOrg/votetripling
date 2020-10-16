@@ -93,6 +93,8 @@ def main(args):
                                census_last_dict, token_counter, 
                                is_van_response = True)
         if len(candidates) <= 0:
+            names_extract.append("")
+            manual_review.append(False)
             continue
         X_tokens_row = pd.DataFrame(features).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
