@@ -35,8 +35,8 @@ def main(args):
         van = load_flat_file(home, args.input_data_filename)
     
     # Thresholds for manual review and labeling
-    LOWER_BOUND = .4 
-    UPPER_BOUND = .75
+    LOWER_BOUND = .8
+    UPPER_BOUND = .9
 
     print("Loading Models...")
 
