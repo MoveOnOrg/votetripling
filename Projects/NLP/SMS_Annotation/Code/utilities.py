@@ -23,7 +23,7 @@ nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our|step)\\b"
 RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|ma|pa|boss[a-z]+|follower|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbo[a-z]+|in[ -]?law)[s]*\\b"
-EXCLUDE = "\\b(everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
+EXCLUDE = "\\b(your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 
@@ -176,12 +176,12 @@ def stringify_tokens(good_tokens):
     return sep.join(name_tokens)
 
 # Extract the tokens with high enough probability    
-def extract_good_tokens(clean_tokens, 
+def extract_good_tokens(candidate_tokens, 
                         triple_message,
                         y_pred, 
                         response,
                         threshold = .5):
-    good_tokens = [t for j, t in enumerate(clean_tokens) if y_pred[j, 1] > threshold]
+    good_tokens = [t for j, t in enumerate(candidate_tokens) if y_pred[j, 1] > threshold]
     return present_tokens(good_tokens, response, triple_message)
 
 
@@ -189,6 +189,67 @@ def extract_good_tokens(clean_tokens,
 # Featurizing Functions
 ################################
         
+def featurize_raw_token_position(j, is_possessive, is_sep, is_and):    
+    
+    prefix_dict = {
+            'prev' : j - 1,
+            'next' : j + 1
+            }
+
+    feature_name_dict = {
+            'posessive' : is_possessive,
+            'sep' : is_sep,
+            'and' : is_and
+            }
+    # Build all token features
+    feature_dict = {
+            'position' : j
+            }
+    
+    for feature_name in feature_name_dict:
+        for position_name in prefix_dict:
+            feature_name_full = feature_name + '_' + position_name
+            position = prefix_dict[position_name]
+            feature_list = feature_name_dict[feature_name]
+            feature_dict[feature_name_full] = False
+            
+            # If this is a valid token position, try the feature
+            if position >= 0 and position < len(is_possessive):
+                feature_dict[feature_name_full] = feature_list[position]
+    return feature_dict
+
+def featurize_wordlike_token(raw_position,
+                             candidate_position,
+                             persons,
+                             doc,
+                             clean_tokens,
+                             is_relationship,
+                             english_dict,
+                             census_dict,
+                             census_last_dict,
+                             token_counter,
+                             smooth_census = 0,
+                             smooth_eng = 1):
+    raw_token = doc[raw_position].string
+    clean_token = clean_tokens[raw_position]
+    stemmed_token = stemmer.stem(clean_token)
+    
+    # Build all token features
+    feature_dict = {
+            'token_length' : len(clean_token),
+            'candidate_position' : candidate_position,
+            'relationship' : is_relationship[raw_position],
+            'eng_prob' : english_dict.get(clean_token, smooth_eng),
+            'name_prob' : census_dict.get(clean_token, smooth_census),
+            'corpus_prob' : np.log(token_counter.get(stemmed_token, smooth_eng)),
+            'last_name_prob' : census_last_dict.get(clean_token, smooth_census),
+            'parent_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[raw_position].ancestors]) > 0,
+            'child_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[raw_position].ancestors]) > 0,
+            'is_cap' : re.match('[A-Z]', raw_token) is not None,
+            'is_ent' : len([e for e in persons if e.start >= raw_position and e.end <= raw_position]) > 0
+            }
+    return feature_dict
+
 # Get features for a single token
 def get_token_features(voterResponse, 
                        tripleMessage,
@@ -196,80 +257,114 @@ def get_token_features(voterResponse,
                        census_dict,
                        census_last_dict,
                        token_counter,
-                       smooth_census = 0,
-                       smooth_eng = 1,
-                       relationship_reg = RELATIONSHIPS,
+                       is_post_response = False,
+                       is_van_response = False,
                        and_reg = "\\band\\b|\\by\\b|\\&|\\by\\b",
                        sep_reg = "\\||,|-|\\.",
+                       relationship_reg = RELATIONSHIPS,
                        possessive_reg = POSSESSIVES,
                        excludelist_reg = EXCLUDE,
                        exclude_prior_reg = EXCLUDE_PRIOR,
-                       is_initial_response = True,
                        name_threshold = 8
                        ):
-    token_features = []
-
     # Parse using spacy
+    triple_message_tokens = cleanString(tripleMessage).split(" ")
     doc = get_doc(voterResponse)
-    persons = [e for e in doc.ents if e.label_ == "PERSON"]
     clean_tokens = [normalize_token(t.string) for t in doc]
     cleaned_string = ' '.join(clean_tokens)
-    is_wordlike = [not t == "" for t in clean_tokens]
     is_seperator = [re.match(sep_reg, t.string.lower()) is not None for t in doc]
     is_and = [re.match(and_reg, t.string.lower()) is not None for t in doc]
-    is_capital = [re.match('[A-Z]', t.string) is not None for t in doc]
-    is_relationship = [re.match(relationship_reg, t) is not None for t in clean_tokens]
-    is_exclude = [re.match(excludelist_reg, t) is not None for t in clean_tokens]
     is_possessive = [re.match(possessive_reg, t) is not None for t in clean_tokens]
-    name_probs = [census_dict.get(t, smooth_census) for t in clean_tokens]   
-    triple_message_tokens = cleanString(tripleMessage).split(" ")
+    is_exclude = [re.match(excludelist_reg, t) is not None for t in clean_tokens]
+    is_wordlike = [not t == "" for t in clean_tokens]
+    is_relationship = [re.match(relationship_reg, t) is not None for t in clean_tokens]
+    persons = list(doc.ents)
+    
+    # Reduce to name candidates
+    candidate_token_positions = [i for i, t in enumerate(clean_tokens) \
+                        # must be a wordlike, non "And" tooken
+                        if is_wordlike[i] and not is_and[i] \
+                        # not an excluded phrase
+                        and not is_exclude[i] \
+                        # not proceeded by disqualifying phrase
+                        and re.match(exclude_prior_reg + ' ' + clean_tokens[i], cleaned_string) is None \
+                        # not a possesive word
+                        and not is_possessive[i] \
+                        # not in the solicitation message (unless its a known relationship word)
+                        and (is_relationship[i] or not t in triple_message_tokens) ]
+    candidate_tokens = [clean_tokens[i] for i in candidate_token_positions]
 
+    # Featurize Each token
+    all_token_features = []
+    for candidate_position, raw_position in enumerate(candidate_token_positions):
+        # Calculate features for adjacent raw tokens
+        position_features = featurize_raw_token_position(
+                raw_position, 
+                is_possessive = is_possessive, 
+                is_sep = is_seperator, 
+                is_and = is_and
+                )
+
+        # Calculate features for this token
+        token_features = featurize_wordlike_token(
+               raw_position,
+               candidate_position,
+               persons,
+               doc,
+               clean_tokens,
+               is_relationship,
+               english_dict,
+               census_dict,
+               census_last_dict,
+               token_counter
+               )
+        token_features.update(position_features)
+        all_token_features.append(token_features)
+        
     # Comment Level Features
     total_tokens = len(doc)
     word_tokens = sum(is_wordlike)
     and_tokens = sum(is_and)
     seperators = sum(is_seperator)
-    other = total_tokens - word_tokens - seperators
+    comment_dict = {
+            'postReponse' : is_post_response,
+            'vanResponse' : is_van_response,
+            'candidate_length' : len(candidate_token_positions),
+            'num_tokens' : total_tokens,
+            'word_tokens' : word_tokens,
+            'relation_tokens' : sum(is_relationship),
+            'name_tokens' : np.sum([tf['name_prob'] > name_threshold for tf in all_token_features]),
+            'and_tokens' : and_tokens,
+            'seperators' : seperators,
+            'other_tokens' : total_tokens - word_tokens - seperators
+            }
 
-    for j, clean_token in enumerate(clean_tokens):
+    # Which features from adjacent candidates may be relevant?
+    adjacent_features = ['token_length', 'relationship', 'eng_prob', 'name_prob', 'corpus_prob', 'last_name_prob', 'is_cap']
 
-        # Skip Non-Wordlike tokens
-        if not is_wordlike[j]:
-            continue
+    # Add features from adjacent tokens
+    for i, tf in enumerate(all_token_features):
+        
+        # Add comment level features
+        tf.update(comment_dict)
+        
+        
+        for feature in adjacent_features:
+            # Add previous token if applicable
+            prev_feature_name = feature + '_prev'
+            if i - 1 < 0:
+                tf[prev_feature_name] = 0
+            else:
+                tf[prev_feature_name] = all_token_features[i - 1][feature]
 
-        # Build all token features
-        feature_dict = {
-                'initialResponse' : is_initial_response,
-                'token_in_triple_message' : clean_token in triple_message_tokens,
-                'token_length' : len(clean_token),
-                'position' : j,
-                'num_tokens' : total_tokens,
-                'word_tokens' : word_tokens,
-                'relation_tokens' : sum(is_relationship),
-                'name_tokens' : np.sum(np.array(name_probs) > name_threshold),
-                'and_tokens' : and_tokens,
-                'seperators' : seperators,
-                'other' : other,
-                'relationship' : is_relationship[j],
-                'exclude' : is_exclude[j],
-                'exclude_phrase' : re.match(exclude_prior_reg + ' ' + clean_token, cleaned_string) is not None,
-                'eng_prob' : english_dict.get(clean_token, smooth_eng),
-                'name_prob' : name_probs[j],
-                'corpus_prob' : np.log(token_counter.get(stemmer.stem(clean_token), smooth_eng)),
-                'last_name_prob' : census_last_dict.get(clean_token, smooth_census),
-                'parent_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[j].ancestors]),
-                'child_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[j].ancestors]),
-                'is_cap' : is_capital[j],
-                'is_ent' : len([e for e in persons if e.start >= j and e.end <= j]) > 0,
-                'is_possessive' : is_possessive[j],
-                'prev_possessive' : j > 0 and is_possessive[j - 1],
-                'prev_sep' : j > 0 and is_seperator[j - 1],
-                'next_sep' : j < len(doc) - 1 and is_seperator[j + 1],
-                'prev_and' : j > 0 and is_and[j - 1],
-                'next_and' : j < len(doc) - 1 and is_and[j + 1]
-                }
-        token_features.append(feature_dict)
-    return token_features
+            # Add previous token if applicable
+            next_feature_name = feature + '_next'
+            if i + 1 >= len(all_token_features):
+                tf[next_feature_name] = 0
+            else:
+                tf[next_feature_name] = all_token_features[i + 1][feature]
+
+    return candidate_tokens, all_token_features
 
 # Aggregate token features for an entire dataset
 def add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = 0.5):
@@ -282,11 +377,18 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
         if (cleanString(row['voterfinal'], ) == "" or row['voterfinal'] is None) and \
             (cleanString(row['voterpost']) == "" or row['voterpost'] is None):
             continue
-        X_tokens_row = pd.DataFrame(
-            get_token_features(row['voterfinal'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter) + \
-            get_token_features(row['voterpost'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter)
-            ).values.astype(float)
+
+        # Featurize available tokens        
+        finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter)
+        postCandidates, postFeatures = get_token_features(row['voterpost'], row['triplemessage'], 
+                                                          english_dict, census_dict, 
+                                                          census_last_dict, token_counter, is_post_response = True)
+        
+        # Predict probability of each being a name
+        X_tokens_row = pd.DataFrame(finalFeatures + postFeatures).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
+
+        # Store probabilities for the Top 3
         top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
         data.loc[i, 'name_prob1'] = top3_tokens[0]
         if len(top3_tokens) > 1:
@@ -294,15 +396,9 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
         if len(top3_tokens) > 2:
             data.loc[i, 'name_prob3'] = top3_tokens[2]
 
-        # Get Tokens
-        doc = get_doc(row['voterfinal'])
-        post_doc = get_doc(row['voterpost'])
-        clean_tokens = [normalize_token(t.string) for t in doc] + [normalize_token(t.string) for t in post_doc]
-        clean_tokens = [t for t in clean_tokens if not t == ""]
-
         full_response = row['voterresponse'] + ' ' + row['voterfinal'] + ' ' + row['voterpost']
         data.loc[i, 'names_extract'] = extract_good_tokens(
-                clean_tokens = clean_tokens, 
+                clean_tokens = finalCandidates + postCandidates,
                 triple_message = row['triplemessage'], 
                 y_pred = y_pred, 
                 response = full_response, 

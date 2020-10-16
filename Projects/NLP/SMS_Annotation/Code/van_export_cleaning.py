@@ -90,7 +90,9 @@ def main(args):
             manual_review.append(False)
             continue
         X_tokens_row = pd.DataFrame(
-            get_token_features(response, row['contactname'], english_dict, census_dict, census_last_dict, token_counter)
+            get_token_features(response, row['contactname'], english_dict, census_dict, 
+                               census_last_dict, token_counter, 
+                               is_van_response = True)
             ).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
         doc = get_doc(response)
