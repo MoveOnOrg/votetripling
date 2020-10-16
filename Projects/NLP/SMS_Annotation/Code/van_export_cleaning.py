@@ -89,19 +89,17 @@ def main(args):
             names_extract.append("")
             manual_review.append(False)
             continue
-        X_tokens_row = pd.DataFrame(
-            get_token_features(response, row['contactname'], english_dict, census_dict, 
+        candidates, features = get_token_features(response, row['contactname'], english_dict, census_dict, 
                                census_last_dict, token_counter, 
                                is_van_response = True)
-            ).values.astype(float)
+        if len(candidates) <= 0:
+            continue
+        X_tokens_row = pd.DataFrame(features).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
-        doc = get_doc(response)
-        clean_tokens = [normalize_token(t.string) for t in doc] 
-        clean_tokens = [t for t in clean_tokens if not t == ""]
-        
+
         # Extract any plausible tokens
         names_extract.append(extract_good_tokens(
-                clean_tokens = clean_tokens, 
+                candidate_tokens = candidates, 
                 triple_message = row['contactname'],
                 y_pred = y_pred, 
                 response = response, 
