@@ -378,12 +378,18 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
             (cleanString(row['voterpost']) == "" or row['voterpost'] is None):
             continue
 
-        # Featurize available tokens        
-        finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'], english_dict, census_dict, census_last_dict, token_counter)
+        # Featurize available tokens 
+        finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'], 
+                                                            english_dict, census_dict, 
+                                                            census_last_dict, token_counter)
         postCandidates, postFeatures = get_token_features(row['voterpost'], row['triplemessage'], 
                                                           english_dict, census_dict, 
-                                                          census_last_dict, token_counter, is_post_response = True)
+                                                          census_last_dict, token_counter, 
+                                                          is_post_response = True)
+        candidates = finalCandidates + postCandidates
         
+        if len(candidates) <= 0:
+            continue
         # Predict probability of each being a name
         X_tokens_row = pd.DataFrame(finalFeatures + postFeatures).values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
@@ -398,7 +404,7 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
 
         full_response = row['voterresponse'] + ' ' + row['voterfinal'] + ' ' + row['voterpost']
         data.loc[i, 'names_extract'] = extract_good_tokens(
-                clean_tokens = finalCandidates + postCandidates,
+                candidate_tokens = candidates,
                 triple_message = row['triplemessage'], 
                 y_pred = y_pred, 
                 response = full_response, 
