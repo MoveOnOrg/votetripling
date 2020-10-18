@@ -22,7 +22,7 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our|step)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|ma|pa|boss[a-z]+|follower|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbo[a-z]+|in[ -]?law)[s]*\\b"
+RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
 EXCLUDE = "\\b(your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
@@ -129,7 +129,8 @@ def present_tokens(clean_tokens,
                 triple_message = None,
                 excluded = EXCLUDE,
                 possessive = POSSESSIVES,
-                relations = RELATIONSHIPS):
+                relations = RELATIONSHIPS,
+                is_van_text = False):
     # If Provided, make sure to exclude any names in the initial triple message 
     # as they are either the target or a politician
     if triple_message:
@@ -143,7 +144,7 @@ def present_tokens(clean_tokens,
         # For relationships, look for the proper modifier
         if re.match(relations, token):
             pos_match = re.search("\\b(his|her|their|step) %s"%token, response)
-            if pos_match:
+            if pos_match and not is_van_text:
                 token = pos_match.group()
             else:
                 token = "your " + token
@@ -180,16 +181,17 @@ def extract_good_tokens(candidate_tokens,
                         triple_message,
                         y_pred, 
                         response,
-                        threshold = .5):
+                        threshold = .5,
+                        is_van_text = False):
     good_tokens = [t for j, t in enumerate(candidate_tokens) if y_pred[j, 1] > threshold]
-    return present_tokens(good_tokens, response, triple_message)
+    return present_tokens(good_tokens, response, triple_message, is_van_text = is_van_text)
 
 
 ################################
 # Featurizing Functions
 ################################
         
-def featurize_raw_token_position(j, is_possessive, is_sep, is_and):    
+def featurize_raw_token_position(j, clean_tokens, is_possessive, is_sep, is_and):    
     
     prefix_dict = {
             'prev' : j - 1,
@@ -197,6 +199,7 @@ def featurize_raw_token_position(j, is_possessive, is_sep, is_and):
             }
 
     feature_name_dict = {
+            'token' : clean_tokens,
             'posessive' : is_possessive,
             'sep' : is_sep,
             'and' : is_and
@@ -211,7 +214,11 @@ def featurize_raw_token_position(j, is_possessive, is_sep, is_and):
             feature_name_full = feature_name + '_' + position_name
             position = prefix_dict[position_name]
             feature_list = feature_name_dict[feature_name]
-            feature_dict[feature_name_full] = False
+            
+            if 'token' in feature_name:
+                feature_dict[feature_name_full] = ''
+            else:
+                feature_dict[feature_name_full] = False                
             
             # If this is a valid token position, try the feature
             if position >= 0 and position < len(is_possessive):
@@ -253,6 +260,8 @@ def featurize_wordlike_token(raw_position,
 # Get features for a single token
 def get_token_features(voterResponse, 
                        tripleMessage,
+                       van_token_vectorizer,
+                       model_token_bow,
                        english_dict,
                        census_dict,
                        census_last_dict,
@@ -300,10 +309,18 @@ def get_token_features(voterResponse,
         # Calculate features for adjacent raw tokens
         position_features = featurize_raw_token_position(
                 raw_position, 
+                clean_tokens = clean_tokens,
                 is_possessive = is_possessive, 
                 is_sep = is_seperator, 
                 is_and = is_and
                 )
+        
+        # Lexicon Features
+        X_prev = van_token_vectorizer.transform([position_features['token_prev']])
+        X_token = van_token_vectorizer.transform([clean_tokens[raw_position]])
+        X_next = van_token_vectorizer.transform([position_features['token_next']])
+        X_bow_row = hstack((X_prev, X_token, X_next))
+        position_features['lexicon_prediction'] = model_token_bow.predict_proba(X_bow_row)[0,1]
 
         # Calculate features for this token
         token_features = featurize_wordlike_token(
@@ -367,11 +384,18 @@ def get_token_features(voterResponse,
     return candidate_tokens, all_token_features
 
 # Aggregate token features for an entire dataset
-def add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = 0.5):
+def add_token_features(data, 
+                       van_token_vectorizer, model_token_bow,
+                       token_model, Features,
+                       english_dict, census_dict, census_last_dict, 
+                       token_counter, 
+                       LOWER_BOUND = .4,
+                       UPPER_BOUND = .75):
     # Score tokens for each relevant voter response
     data['name_prob1'] = 0.0
     data['name_prob2'] = 0.0
     data['name_prob3'] = 0.0
+    data['manual_review'] = False
     data['names_extract'] = ""
     for i, row in data.iterrows():
         if (cleanString(row['voterfinal'], ) == "" or row['voterfinal'] is None) and \
@@ -379,10 +403,12 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
             continue
 
         # Featurize available tokens 
-        finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'], 
+        finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'],
+                                                            van_token_vectorizer, model_token_bow,
                                                             english_dict, census_dict, 
                                                             census_last_dict, token_counter)
         postCandidates, postFeatures = get_token_features(row['voterpost'], row['triplemessage'], 
+                                                            van_token_vectorizer, model_token_bow,
                                                           english_dict, census_dict, 
                                                           census_last_dict, token_counter, 
                                                           is_post_response = True)
@@ -391,8 +417,12 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
         if len(candidates) <= 0:
             continue
         # Predict probability of each being a name
-        X_tokens_row = pd.DataFrame(finalFeatures + postFeatures).values.astype(float)
+        X_tokens_row = pd.DataFrame(finalFeatures + postFeatures)[Features].values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
+
+        # Do we have an uncertain token?
+        if ((y_pred[:,1] > LOWER_BOUND) & (y_pred[:,1] < UPPER_BOUND)).sum() > 0:
+            data.loc[i, 'manual_review'] = True
 
         # Store probabilities for the Top 3
         top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
@@ -408,9 +438,73 @@ def add_token_features(data, token_model, english_dict, census_dict, census_last
                 triple_message = row['triplemessage'], 
                 y_pred = y_pred, 
                 response = full_response, 
-                threshold = threshold
+                threshold = LOWER_BOUND
                 )
     return data
+
+# Aggregate token features for an entire dataset
+def add_token_features_van(data, van_token_vectorizer, model_token_bow,
+                           token_model, Features,
+                           english_dict, census_dict, 
+                           census_last_dict, token_counter, 
+                           LOWER_BOUND = .4,
+                           UPPER_BOUND = .75):
+    # Score tokens for each relevant voter response
+    data['name_prob1'] = 0.0
+    data['name_prob2'] = 0.0
+    data['name_prob3'] = 0.0
+    data['names_extract'] = ""
+    for i, row in data.iterrows():
+        if (cleanString(row['notetext'], ) == "" or row['notetext'] is None):
+            continue
+
+        # Featurize available tokens 
+        candidates, features = get_token_features(row['notetext'], row['contactname'], 
+                                                  van_token_vectorizer, model_token_bow,
+                                                  english_dict, census_dict, 
+                                                  census_last_dict, token_counter,
+                                                  is_van_response = True)
+        
+        if len(candidates) <= 0:
+            continue
+
+        # Predict probability of each being a name
+        X_tokens_row = pd.DataFrame(features)[Features].values.astype(float)
+        y_pred = token_model.predict_proba(X_tokens_row)
+
+        # Do we have an uncertain token?
+        if ((y_pred[:,1] > LOWER_BOUND) & (y_pred[:,1] < UPPER_BOUND)).sum() > 0:
+            data.loc[i, 'manual_review'] = True
+
+        # Store probabilities for the Top 3
+        top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
+        data.loc[i, 'name_prob1'] = top3_tokens[0]
+        if len(top3_tokens) > 1:
+            data.loc[i, 'name_prob2'] = top3_tokens[1]
+        if len(top3_tokens) > 2:
+            data.loc[i, 'name_prob3'] = top3_tokens[2]
+
+        data.loc[i, 'names_extract'] = extract_good_tokens(
+                candidate_tokens = candidates,
+                triple_message = row['contactname'], 
+                y_pred = y_pred, 
+                response = row['notetext'], 
+                threshold = LOWER_BOUND,
+                is_van_text = True
+                )
+    return data
+
+def featurize_conversation_van(data, van_vectorizer):
+    # Voter Response
+    X_response = van_vectorizer.transform(data['notetext'])
+
+    # Peripheral Features
+    X_features = data[['name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']].values * 1
+
+    # Combine features
+    X = hstack((X_response, X_features.astype('float')))
+
+    return X
 
 def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer):
     # Voter Response
@@ -423,7 +517,12 @@ def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vec
     X_post = post_vectorizer.transform(data['voterpost'])
 
     # Peripheral Features
-    X_features = data[['noresponse', 'negresponse', 'posresponse', 'affirmresponse', 'finalaffirmresponse', 'name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']].values * 1
+    X_features = data[['noresponse', 'negresponse', 'posresponse', 
+                       'affirmresponse', 'finalaffirmresponse', 
+                       'name_prob1', 'name_prob2', 'name_prob3', 
+                       'num_tokens_response',
+                       'num_tokens_final',
+                       'num_tokens_post']].values * 1
 
     # Combine features
     X = hstack((X_response, X_final, X_post, X_features.astype('float')))
