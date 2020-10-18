@@ -29,7 +29,8 @@ aggregateMessages <- function(messages,
   messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
   messages[, by = c(idCol, dirCol), messageOrderDir := rank(eval(as.name(messageIdCol)))]
   messages[, messageOrderDirRev := messageOrder - messageOrderDir]
-  aggMessages <- messages[, by = idCol,
+  messages[, conversationid := eval(as.name(idCol))]
+  aggMessages <- messages[, by = "conversationid",
                           list(
                             contact_phone = max(eval(as.name(phoneCol))),
                             totalMessages = .N,
@@ -96,7 +97,7 @@ categorizeBankerResponse <- function(messagesAgg,
 ##############################
 
 # 3. Put the appropriate file path to the raw text data here <<<
-data <- fread("./Documents/Personal/Voting/Data/SMS/Test_Data/testdata.csv")
+data <- fread("./Documents/GitHub/votetripling/Projects/NLP/SMS_Annotation/Input_Data/tinasmith_input_sms_cd5_20201001.csv")
 
 # Aggregate data
 agg <- aggregateMessages(data)

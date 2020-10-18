@@ -19,16 +19,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, precision_recall_curve, roc_auc_score
 import matplotlib.ticker as mtick
 from itertools import dropwhile
-
-from utilities import get_token_features, stemmer, normalize_token, clean_labeled_names
+from scipy.sparse import hstack
+from utilities import get_token_features, stemmer, normalize_token, clean_labeled_names, extract_good_tokens, cleanString
 
 def get_response_names(namesClean,
-                       poss = "\\b(your|my|his|her|their|our|step|and)\\b"):
+                       poss = "\\b(your|my|his|her|their|our|step|and|[0-9])\\b"):
     tokens = namesClean.lower().replace(",", "").split(" ")
     return [t for t in tokens if re.match(poss, t) is None]
 
 ################################
-# Load and Clean
+# Load and Clean SMS Data
 ################################
     
 # Load Data
@@ -47,15 +47,78 @@ labeled.loc[labeled.names.isnull(), 'names'] = ""
 labeled.loc[(labeled.moved == 1) & ~(labeled.names == ""), ['names']] = ""
 labeled.loc[(labeled.wrongnumber == 1) & ~(labeled.names == ""), ['names']] = ""
 
+# How many tokens
+labeled['num_tokens_response'] = labeled.voterResponse.str.count(" ") + ~(labeled.voterResponse == "")
+labeled['num_tokens_final'] = labeled.voterFinal.str.count(" ") + ~(labeled.voterFinal == "")
+labeled['num_tokens_post'] = labeled.voterPost.str.count(" ") + ~(labeled.voterPost == "")
 
-# Train Data
-van = pd.read_csv(Path(home, "Input_Data/manualreview.csv"), encoding='latin1')
-van = van.loc[~van.reviewed.isnull()]
+################################
+# Load and Clean SMS Data
+################################
+
+## Training Data ##
+columns = ['voter_file_vanid', 'contactname', 'notetext', 'names_extract', 'source']
+
+# Primary File
+van1 = pd.read_csv(Path(home, "Input_Data/van_manualreview.csv"), encoding='latin1')
+van1 = van1[['voter_file_vanid', 'contactname', 'notetext']].drop_duplicates()
+van1 = van1.fillna('')
+van1['source'] = 'main'
+
+# Group together all notes
+van1['notetext'] = van1.groupby(['voter_file_vanid', 'contactname', 'source'])['notetext'].transform(lambda x: ' '.join(x))
+van1 = van1.drop_duplicates()
+
+# Add on labels
+van1_labels = pd.read_csv(Path(home, "Input_Data", "van_manualreview_labels.csv"), encoding='latin1').drop_duplicates()
+van1_labels = van1_labels.fillna('')
+van1 = pd.merge(van1, van1_labels, on = 'voter_file_vanid', how = 'outer')
+van1 = van1[columns].drop_duplicates()
+
+# Eliminate those with multiple contradicting labels
+ids = van1.loc[~(van1.names_extract == "")].voter_file_vanid.value_counts()
+ids = ids.loc[ids > 1].index
+van1 = van1.loc[~(van1.voter_file_vanid.isin(ids))]
+
+# For the rest, take the best extraction available
+van1 = van1.groupby(['voter_file_vanid', 'contactname', 'notetext', 'source'], 
+                   as_index = False)['names_extract'].max()
+
+# Additional Files
+van2_columns = ['voter file vanid', 'firstname', 'middlename', 'lastname', 'notes', '3friends']
+files = ["van_driskel.csv", "van_hd20.csv", "van_hd51.csv"]
+dfs = []
+for f in files:
+    df = pd.read_csv(Path(home, "Input_Data", f), encoding='latin1')
+    df.columns = [c.strip().lower() for c in df.columns]    
+    dfs.append(df[van2_columns])
+van2 = pd.concat(dfs)
+van2 = van2.fillna('')
+van2['voter_file_vanid'] = van2['voter file vanid']
+van2['contactname'] = van2['firstname'] + ' ' + van2['middlename'] + ' ' + van2['lastname']
+van2['notetext'] = van2['notes']
+van2['names_extract'] = van2['3friends']
+van2['source'] = 'hd'
+
+# Combine Files
+van = pd.concat([van1[columns], van2[columns]])
 
 # Fix NA values
 van.loc[van.notetext.isnull(), 'notetext'] = ""
 van.loc[van.names_extract.isnull(), 'names_extract'] = ""
 van.loc[van.contactname.isnull(), 'contactname'] = ""
+
+# Eliminate generic answer of 3 friends
+van = van.loc[~(van.names_extract.isin(['your 3 friends', 'your three friends']))]
+van = van.loc[~(van['notetext'] == "")]
+van.to_csv(Path(home, "Input_Data", "van_all.csv"))
+
+# How Many tokens
+van['num_tokens'] = van.notetext.str.count(" ") + ~(van.notetext == "")
+
+################################
+# Clean Labeled Names
+################################
 
 # Clean Name Column
 labeled['namesClean'] = ''
@@ -63,12 +126,16 @@ for i, row in labeled.loc[~(labeled.names == '')].iterrows():
     names = row['names']
     response = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' + row['voterPost']
     labeled.loc[i, 'namesClean'] = clean_labeled_names(names, response)
+labeled = labeled.loc[~(~(labeled.names == "") & (labeled.namesClean == ""))]
 
+van.index = np.arange(len(van))
 van['namesClean'] = ''
 for i, row in van.loc[~(van.names_extract == '')].iterrows():
     names = row['names_extract']
     response = row['notetext']
     van.loc[i, 'namesClean'] = clean_labeled_names(names, response)
+van = van.loc[~(~(van.names_extract == "") & (van.namesClean == ""))]
+
 
 # Name Data
 census = pd.read_csv(Path(home, "census_first_names_all.csv"))
@@ -102,103 +169,20 @@ for response in noname_corpus:
 for key, count in dropwhile(lambda key_count: key_count[1] >= 5, token_counter.most_common()):
     del token_counter[key]
 
-################################
-# Name Token Features
-################################
-
-token_features_all = []
-for i, row in labeled.loc[labeled['tripler']==1].iterrows():
-    responses = get_response_names(row['namesClean'])
-    finalCandidates, finalFeatures = get_token_features(row['voterFinal'], row['tripleMessage'], 
-                                                        english_dict, census_dict, census_last_dict, token_counter)
-    postCandidates, postFeatures = get_token_features(row['voterPost'], row['tripleMessage'], 
-                                                      english_dict, census_dict, census_last_dict, 
-                                                      token_counter, is_post_response = True)
-    new_df = pd.DataFrame(finalFeatures + postFeatures)
-    new_df['token'] = finalCandidates + postCandidates
-    new_df['response'] = [t in responses for t in new_df['token']]
-    new_df['actual'] = row['namesClean']
-    new_df['full'] = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' +row['voterPost']
-    token_features_all.append(new_df)
-
-
-for i, row in van.loc[~(van['notetext']=="")].iterrows():
-    responses = get_response_names(row['namesClean'])
-    candidates, features = get_token_features(row['notetext'], row['contactname'], 
-                                                      english_dict, census_dict, census_last_dict, 
-                                                      token_counter, is_van_response = True)
-    new_df = pd.DataFrame(features)
-    new_df['token'] = candidates
-    new_df['response'] = [t in responses for t in new_df['token']]
-    new_df['actual'] = row['namesClean']
-    new_df['full'] = row['notetext']
-    token_features_all.append(new_df)
-
-token_df = pd.concat(token_features_all)
 
 ################################
-# Token Featurization
+# General Token Featurization for SMS
 ################################
 
-# Token Featurization
-Features = [c for c in token_df.columns if not c in ['response', 'token', 'actual', 'full']]
-X_tokens = token_df[Features].values.astype(float)
-y_tokens = token_df['response'].values.astype(bool)
+### BOW Representations for Token Model ###
 
-# Combine
-X_train_tokens, X_test_tokens, y_train_tokens, y_test_tokens = train_test_split(X_tokens, y_tokens)
+# Voter Final
+van_token_vectorizer = CountVectorizer(ngram_range=(1, 1), token_pattern=r'\b\w+\b', min_df=25)
+X_bow_token = van_token_vectorizer.fit_transform(van.notetext.values.tolist() + \
+                                                 labeled.voterPost.values.tolist() + \
+                                                 labeled.voterFinal.values.tolist())
 
-################################
-# Train Token Model
-################################
-
-# Train Model
-class_prob = y_tokens.mean()
-token_model = RandomForestClassifier(n_estimators = 500) #, class_weight = {True : 1 / class_prob, False : 1})
-token_model.fit(X_train_tokens, y_train_tokens)
-
-# Evaluate
-token_df['prob'] = token_model.predict_proba(X_tokens)[:, 1]
-
-# Print weird examples
-token_df.loc[(token_df['prob'] > .4) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob']]
-token_df.loc[(token_df['prob'] < .4) & (token_df['response'] == True)][['token', 'full', 'actual', 'prob']]
-token_df.loc[(token_df['relationship'] == True) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob']]
-
-# Score tokens for each relevant voter response
-labeled['name_prob1'] = 0.0
-labeled['name_prob2'] = 0.0
-labeled['name_prob3'] = 0.0
-labeled['names_extract'] = ""
-threshold = 0.5
-for i, row in labeled.iterrows():
-    if (cleanString(row['voterFinal']) == "" or row['voterFinal'] is None) and \
-            (cleanString(row['voterPost']) == "" or row['voterPost'] is None):
-        continue
-    X_tokens_row = pd.DataFrame(
-            get_token_features(row['voterFinal'], row['tripleMessage'], row['names'], row['conversation_id']) +
-            get_token_features(row['voterPost'], row['tripleMessage'], row['names'], row['conversation_id'])
-            ).values[:,0:N_Features].astype(float)
-    y_pred = token_model.predict_proba(X_tokens_row)
-    top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
-    labeled.loc[i, 'name_prob1'] = top3_tokens[0]
-    if len(top3_tokens) > 1:
-        labeled.loc[i, 'name_prob2'] = top3_tokens[1]
-    if len(top3_tokens) > 2:
-        labeled.loc[i, 'name_prob3'] = top3_tokens[2]
-        
-    # Get Tokens
-    doc = get_doc(row['voterFinal'])
-    post_doc = get_doc(row['voterPost'])
-    clean_tokens = [normalize_token(t.string) for t in doc] + [normalize_token(t.string) for t in post_doc]
-    clean_tokens = [t for t in clean_tokens if not t == ""]
-    labeled.loc[i, 'names_extract'] = extract_good_tokens(clean_tokens, y_pred, threshold)
-
-################################
-# General Token Featurization
-################################
-
-### BOW Representations ###
+### BOW Representations for Response Models ###
     
 # Voter Response
 response_vectorizer = CountVectorizer(ngram_range=(1, 2), token_pattern=r'\b\w+\b', min_df=5)
@@ -213,7 +197,12 @@ post_vectorizer = CountVectorizer(ngram_range=(1, 2), token_pattern=r'\b\w+\b', 
 X_post = post_vectorizer.fit_transform(labeled.voterPost)
 
 # Peripheral Features
-main_feature_names = ['noResponse', 'negResponse', 'posResponse', 'affirmResponse', 'finalAffirmResponse', 'name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']
+main_feature_names = ['noResponse', 'negResponse', 'posResponse', 
+                      'affirmResponse', 'finalAffirmResponse', 
+                      'name_prob1', 'name_prob2', 'name_prob3', 
+                      'num_tokens_response',
+                      'num_tokens_final',
+                      'num_tokens_post']
 X_features = labeled[main_feature_names].values * 1
 
 # Combine features
@@ -228,8 +217,179 @@ y_wrongnumber = pd.get_dummies(labeled.wrongnumber.astype('category'))
 # Train/Test
 train, test, X_train, X_test = train_test_split(np.arange(X.shape[0]), X)
 
+
 ################################
-# General Model Training
+# Name Token Features
+################################
+
+token_features_all = []
+for i, row in labeled.loc[labeled['tripler']==1].iterrows():
+    responses = get_response_names(row['namesClean'])
+    finalCandidates, finalFeatures = get_token_features(row['voterFinal'], row['tripleMessage'],
+                                                        van_token_vectorizer, model_token_bow,
+                                                        english_dict, census_dict, census_last_dict, 
+                                                        token_counter)
+    postCandidates, postFeatures = get_token_features(row['voterPost'], row['tripleMessage'],
+                                                      van_token_vectorizer, model_token_bow,
+                                                      english_dict, census_dict, census_last_dict, 
+                                                      token_counter, is_post_response = True)
+    new_df = pd.DataFrame(finalFeatures + postFeatures)
+    new_df['token'] = finalCandidates + postCandidates
+    new_df['response'] = [t in responses for t in new_df['token']]
+    new_df['actual'] = row['namesClean']
+    new_df['full'] = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' +row['voterPost']
+    token_features_all.append(new_df)
+
+
+for i, row in van.iterrows():
+    responses = get_response_names(row['namesClean'])
+    candidates, features = get_token_features(row['notetext'], row['contactname'],
+                                          van_token_vectorizer, model_token_bow,
+                                          english_dict, census_dict, census_last_dict,
+                                          token_counter, is_van_response = True)
+    new_df = pd.DataFrame(features)
+    new_df['token'] = candidates
+    new_df['response'] = [t in responses for t in new_df['token']]
+    new_df['actual'] = row['namesClean']
+    new_df['full'] = row['notetext']
+    token_features_all.append(new_df)
+
+token_df = pd.concat(token_features_all)
+token_df.index = np.arange(len(token_df))
+
+################################
+# Token Featurization
+################################
+
+# Class Weight
+y_tokens = token_df['response'].values.astype(bool)
+class_prob = y_tokens.mean()
+class_weight = {True : 1 / class_prob, False : 1}
+
+# Featurize Lexicon
+X_prev = van_token_vectorizer.transform(token_df['token_prev'].astype(str))
+X_token = van_token_vectorizer.transform(token_df['token'].astype(str))
+X_next = van_token_vectorizer.transform(token_df['token_next'].astype(str))
+X_bow = hstack((X_prev, X_token, X_next))
+
+# Train/Test Split
+X_bow_train, X_bow_test, train_tokens, test_tokens = train_test_split(X_bow, np.arange(len(token_df)))
+y_train_tokens = y_tokens[train_tokens]
+y_test_tokens = y_tokens[test_tokens]
+
+# Train BOW Model
+model_token_bow = LogisticRegressionCV(penalty='l1', solver='liblinear', class_weight = class_weight)
+model_token_bow.fit(X_bow_train, y_train_tokens)
+
+# Predictions from BOW
+token_df['lexicon_prediction'] = model_token_bow.predict_proba(X_bow)[:, 1]
+
+# Full Token Featurization
+not_Features = ['response', 'token', 'actual', 'full', 'token_next', 'token_prev']
+Features = [c for c in token_df.columns if not c in not_Features]
+X_tokens = token_df[Features].values.astype(float)
+X_train_tokens = X_tokens[train_tokens, :]
+X_test_tokens = X_tokens[test_tokens, :]
+
+################################
+# Train Token Model
+################################
+
+# Train Model
+token_model = RandomForestClassifier(n_estimators = 250, 
+                                     class_weight = class_weight)
+token_model.fit(X_train_tokens, y_train_tokens)
+
+# Evaluate
+token_df['prob'] = token_model.predict_proba(X_tokens)[:, 1]
+plt.hist(token_df.loc[test_tokens,'prob'])
+plt.hist(token_df.loc[train_tokens,'prob'])
+
+# Print weird examples
+token_df.loc[(token_df['prob'] > .75) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob']]
+token_df.loc[(token_df['prob'] < .25) & (token_df['response'] == True)][['token', 'full', 'actual', 'prob']]
+token_df.loc[(token_df['relationship'] == True) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob']]
+
+################################
+# Model for whether the response has names in it
+################################
+
+# Score tokens for each relevant voter response
+labeled['name_prob1'] = 0.0
+labeled['name_prob2'] = 0.0
+labeled['name_prob3'] = 0.0
+labeled['names_extract'] = ""
+threshold = 0.5
+for i, row in labeled.iterrows():
+    if (cleanString(row['voterFinal']) == "" or row['voterFinal'] is None) and \
+            (cleanString(row['voterPost']) == "" or row['voterPost'] is None):
+        continue
+    finalCandidates, finalFeatures = get_token_features(row['voterFinal'], row['tripleMessage'], 
+                                                        van_token_vectorizer, model_token_bow,
+                                                        english_dict, census_dict, census_last_dict, token_counter)
+    postCandidates, postFeatures = get_token_features(row['voterPost'], row['tripleMessage'], 
+                                                      van_token_vectorizer, model_token_bow,
+                                                      english_dict, census_dict, census_last_dict, 
+                                                      token_counter, is_post_response = True)
+    candidates = finalCandidates + postCandidates
+    if len(candidates) > 0:
+        row_token_df = pd.DataFrame(finalFeatures + postFeatures)
+        X_tokens_row = row_token_df[Features].values.astype(float)
+        y_pred = token_model.predict_proba(X_tokens_row)
+        top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
+        if len(top3_tokens) > 0:
+            labeled.loc[i, 'name_prob1'] = top3_tokens[0]
+        if len(top3_tokens) > 1:
+            labeled.loc[i, 'name_prob2'] = top3_tokens[1]
+        if len(top3_tokens) > 2:
+            labeled.loc[i, 'name_prob3'] = top3_tokens[2]
+        labeled.loc[i, 'names_extract'] = extract_good_tokens(
+                candidates, 
+                row['tripleMessage'],
+                y_pred, 
+                row['voterFinal'] + ' ' + row['voterPost'],
+                threshold
+                )
+
+
+# Score tokens for each relevant voter response
+van['name_prob1'] = 0.0
+van['name_prob2'] = 0.0
+van['name_prob3'] = 0.0
+van['names_model'] = ""
+threshold = 0.5
+for i, row in van.iterrows():
+    if (cleanString(row['notetext']) == "" or row['notetext'] is None):
+        continue
+    candidates, features = get_token_features(
+            row['notetext'], row['contactname'], 
+            van_token_vectorizer, model_token_bow,
+            english_dict, census_dict, census_last_dict, token_counter
+            )
+    if len(candidates) > 0:
+        X_tokens_row = pd.DataFrame(features)[Features].values.astype(float)
+        y_pred = token_model.predict_proba(X_tokens_row)
+        top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
+        van.loc[i, 'name_prob1'] = top3_tokens[0]
+        if len(top3_tokens) > 1:
+            van.loc[i, 'name_prob2'] = top3_tokens[1]
+        if len(top3_tokens) > 2:
+            van.loc[i, 'name_prob3'] = top3_tokens[2]
+            
+        van.loc[i, 'names_model'] = extract_good_tokens(
+                    candidates, 
+                    row['contactname'],
+                    y_pred, 
+                    row['notetext'],
+                    threshold
+                    )
+
+# Re-index to ensure no missing
+labeled.index = np.arange(len(labeled))
+van.index = np.arange(len(van))
+
+################################
+# General Model Training SMS
 ################################
 
 # Is this a tripler?
@@ -248,14 +408,35 @@ model_opt.fit(X_train, y_optout.values[train, 1])
 model_wrongnumber = LogisticRegressionCV(penalty='l1', solver='liblinear')
 model_wrongnumber.fit(X_train, y_wrongnumber.values[train, 1])
 
+
+################################
+# General Token Featurization for VAN
+################################
+
+# Voter Response
+van_vectorizer = CountVectorizer(ngram_range=(1, 2), token_pattern=r'\b\w+\b', min_df=5)
+X_van_response = van_vectorizer.fit_transform(van.notetext)
+
+# Peripheral Features
+main_feature_names = ['name_prob1', 'name_prob2', 'name_prob3', 'num_tokens']
+X_van_features = van[main_feature_names].values * 1
+
+# All Features
+X_van = hstack((X_van_response, X_van_features.astype('float')))
+
+# Response Variable
+y_van_names = 1*~(van.namesClean == "")
+
+# Train/Test
+van_train, van_test, X_van_train, X_van_test = train_test_split(np.arange(X_van.shape[0]), X_van)
+
+# Did they provide a valid name?
+model_van_name = LogisticRegressionCV(penalty='l1', solver='liblinear')
+model_van_name.fit(X_van_train, y_van_names[van_train])
+
 ################################
 # Print Lexicons
 ################################
-
-names = response_vectorizer.get_feature_names() + \
-        final_vectorizer.get_feature_names() + \
-        post_vectorizer.get_feature_names() + \
-        main_feature_names
 
 names = response_vectorizer.get_feature_names() + \
         final_vectorizer.get_feature_names() + \
@@ -273,11 +454,23 @@ feature_df.loc[~((feature_df.tripler_weight == 0) &
                  (feature_df.optout_weight == 0) &
                  (feature_df.wrongnumber_weight == 0))].to_csv("./model_features.csv")
 
+    
+names = van_vectorizer.get_feature_names()
+feature_df = pd.DataFrame({
+        'weight' : model_van_name.coef_[0][0:len(names)]
+        }, index = names)
+feature_df.loc[~((feature_df.weight == 0))]
+
+
+token_importance = pd.DataFrame({'importance' : token_model.feature_importances_}, 
+                                index = pd.DataFrame(features).columns)
+token_importance.sort_values('importance')
+
 ################################
 # Pickle all models and featurizers
 ################################
 
-pickle_file = Path(home, "annotation_models.pkl")
+pickle_file = Path(home, "models", "annotation_models.pkl")
 with open(pickle_file, "wb") as f:
     # N-Gram Featurizers
     pickle.dump(response_vectorizer, f)
@@ -290,7 +483,14 @@ with open(pickle_file, "wb") as f:
     pickle.dump(model_name, f)
     pickle.dump(model_opt, f)
     pickle.dump(model_wrongnumber, f)
+    
+    # Other Models
     pickle.dump(token_counter, f)
+    pickle.dump(model_van_name, f)
+    pickle.dump(van_vectorizer, f)
+    pickle.dump(Features, f)
+    pickle.dump(model_token_bow, f)
+    pickle.dump(van_token_vectorizer, f)
 
 ################################
 # Validation
@@ -376,16 +576,29 @@ def plot_validation(actuals, score, title,
     plt.title(title, weight='bold', size = 15)
     plt.show()
 
-# Token Model
-y_pred_forest = token_model.predict_proba(X_test_tokens)[:, 1]
-plot_validation(y_test_tokens, y_pred_forest, title = "Token Flagging")
 
-y_pred_forest = token_model.predict_proba(X_tokens[token_df.vanResponse == True, :])[:,1]
-plot_validation(y_tokens[token_df.vanResponse == True], y_pred_forest, "Van Token Flagging")
+### Token Models ###
+token_test = token_df.loc[test_tokens]
 
-y_pred_forest = token_model.predict_proba(X_tokens[token_df.vanResponse == False, :])[:,1]
-plot_validation(y_tokens[token_df.vanResponse == False], y_pred_forest, "SMS Token Flagging")
+# VAN Tokens ONLY
+plot_validation(
+        token_test.loc[token_test.vanResponse == True, 'response'].values, 
+        token_test.loc[token_test.vanResponse == True, 'prob'].values,
+        title = "Van Token Flagging",
+        lower_threshold = .4,
+        upper_threshold = .75)
 
+# SMS Tokens ONLY
+plot_validation(
+        token_test.loc[token_test.vanResponse == False, 'response'].values, 
+        token_test.loc[token_test.vanResponse == False, 'prob'].values,
+        title = "SMS Token Flagging")
+
+### Response Models ###
+# VAN Name Model
+y_pred_van_name = model_van_name.predict_proba(X_van_test)[:, 1]
+plot_validation(y_van_names.values[van_test], y_pred_van_name, 
+                title = "Valid names provided in VAN?")
 
 # Tripler Model
 y_pred_tripler = model_tripler.predict_proba(X_test)[:, 1]

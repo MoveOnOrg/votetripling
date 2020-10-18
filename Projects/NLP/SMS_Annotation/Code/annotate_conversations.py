@@ -52,6 +52,11 @@ def main(args):
         model_opt = pickle.load(f)
         model_wrongnumber = pickle.load(f)
         token_counter = pickle.load(f)
+        model_van_name = pickle.load(f)
+        van_vectorizer = pickle.load(f)
+        Features = pickle.load(f)
+        model_token_bow = pickle.load(f)
+        van_token_vectorizer = pickle.load(f)
 
     print("Loading Data...")
 
@@ -82,10 +87,17 @@ def main(args):
     data.loc[data.voterpost.isnull(), 'voterpost'] = ""
 
     # Number of tokens in final response
-    data['num_tokens'] = data.voterfinal.str.count(" ") + ~(data.voterfinal == "")
+    data['num_tokens_response'] = data.voterresponse.str.count(" ") + ~(data.voterresponse == "")
+    data['num_tokens_final'] = data.voterfinal.str.count(" ") + ~(data.voterfinal == "")
+    data['num_tokens_post'] = data.voterpost.str.count(" ") + ~(data.voterpost == "")
 
     # Build Token Features
-    data = add_token_features(data, token_model, english_dict, census_dict, census_last_dict, token_counter, threshold = LOWER_BOUND)
+    data = add_token_features(data, van_token_vectorizer,  model_token_bow, 
+                              token_model, Features,
+                              english_dict, census_dict, census_last_dict, 
+                              token_counter,
+                              LOWER_BOUND = LOWER_BOUND,
+                              UPPER_BOUND = UPPER_BOUND)
 
     # Build Features
     X = featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer)
@@ -103,9 +115,7 @@ def main(args):
             (data.tripler_probability > UPPER_BOUND) &
             ((data.name_provided_probability > UPPER_BOUND) | (data.name_provided_probability < LOWER_BOUND)) &
             ((data.optout_probability > UPPER_BOUND) | (data.optout_probability < LOWER_BOUND)) &
-            ((data.name_prob1 > UPPER_BOUND) | (data.name_prob1 < LOWER_BOUND)) &
-            ((data.name_prob2 > UPPER_BOUND) | (data.name_prob2 < LOWER_BOUND)) &
-            ((data.name_prob3 > UPPER_BOUND) | (data.name_prob3 < LOWER_BOUND))
+            (data.manual_review == False)
             ].copy()
     triplers['is_tripler'] = 'yes'
     triplers.loc[triplers.name_provided_probability < UPPER_BOUND, 'names_extract'] = ''
@@ -132,9 +142,7 @@ def main(args):
             ((data.tripler_probability < UPPER_BOUND)) |
             ((data.name_provided_probability < UPPER_BOUND) & (data.name_provided_probability > LOWER_BOUND)) |
             ((data.optout_probability < UPPER_BOUND) & (data.optout_probability > LOWER_BOUND)) |
-            ((data.name_prob1 < UPPER_BOUND) & (data.name_prob1 > LOWER_BOUND)) |
-            ((data.name_prob2 < UPPER_BOUND) & (data.name_prob2 > LOWER_BOUND)) |
-            ((data.name_prob3 < UPPER_BOUND) & (data.name_prob3 > LOWER_BOUND))
+            (data.manual_review == True)
             )].copy()
     review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''

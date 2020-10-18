@@ -18,8 +18,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from pathlib import Path
-from utilities import cleanString, extract_good_tokens, \
-                    get_token_features, get_doc, normalize_token, \
+from utilities import featurize_conversation_van, add_token_features_van, \
                     load_civis, load_flat_file, export_civis
     
 def main(args):
@@ -35,8 +34,8 @@ def main(args):
         van = load_flat_file(home, args.input_data_filename)
     
     # Thresholds for manual review and labeling
-    LOWER_BOUND = .8
-    UPPER_BOUND = .9
+    LOWER_BOUND = .4
+    UPPER_BOUND = .75
 
     print("Loading Models...")
 
@@ -55,6 +54,11 @@ def main(args):
         model_opt = pickle.load(f)
         model_wrongnumber = pickle.load(f)
         token_counter = pickle.load(f)
+        model_van_name = pickle.load(f)
+        van_vectorizer = pickle.load(f)
+        Features = pickle.load(f)
+        model_token_bow = pickle.load(f)
+        van_token_vectorizer = pickle.load(f)
 
     print("Loading Data...")
 
@@ -80,42 +84,36 @@ def main(args):
     van.loc[van.notetext.isnull(), 'notetext'] = ""
     van.loc[van.contactname.isnull(), 'contactname'] = ""
 
-    # Get Extracted Names
-    names_extract = []
-    manual_review = []
-    for i, row in van.iterrows():
-        response = row['notetext']
-        if (cleanString(response) == ""):
-            names_extract.append("")
-            manual_review.append(False)
-            continue
-        candidates, features = get_token_features(response, row['contactname'], english_dict, census_dict, 
-                               census_last_dict, token_counter, 
-                               is_van_response = True)
-        if len(candidates) <= 0:
-            names_extract.append("")
-            manual_review.append(False)
-            continue
-        X_tokens_row = pd.DataFrame(features).values.astype(float)
-        y_pred = token_model.predict_proba(X_tokens_row)
+    # Number of tokens
+    van['num_tokens'] = van.notetext.str.count(" ") + ~(van.notetext == "") 
 
-        # Extract any plausible tokens
-        names_extract.append(extract_good_tokens(
-                candidate_tokens = candidates, 
-                triple_message = row['contactname'],
-                y_pred = y_pred, 
-                response = response, 
-                threshold = LOWER_BOUND
-                ))
-        
-        # Send to Manual Review if there are any tokens in the unclear range
-        manual_review.append(((y_pred[:,1] > LOWER_BOUND) & (y_pred[:,1] < UPPER_BOUND)).sum() > 0)
-    van['names_extract'] = names_extract
-    van['manual_review'] = manual_review
+    # Build Token Features
+    van = add_token_features_van(van, 
+                                 van_token_vectorizer, model_token_bow,
+                                 token_model, Features,
+                                 english_dict, census_dict, 
+                                 census_last_dict, 
+                                 token_counter,
+                                 LOWER_BOUND = LOWER_BOUND,
+                                 UPPER_BOUND = UPPER_BOUND)
+
+    # Build Features
+    X = featurize_conversation_van(van, van_vectorizer)
+
+    print("Annotating with Predictions...")
+
+    # Add Predictions
+    van['names_probability'] = model_van_name.predict_proba(X)[:, 1]
 
     # Get those with confirmed names
-    triplers = van.loc[(van.manual_review == False) & ~(van.names_extract == "")][['voter_file_vanid', 'names_extract']]
-    review = van.loc[van.manual_review == True][['voter_file_vanid', 'contactname', 'notetext', 'names_extract']]
+    triplers = van.loc[(van.manual_review == False) & 
+                       ~(van.names_extract == "") &
+                       (van.names_probability > UPPER_BOUND)][['voter_file_vanid', 'names_extract']]
+    review = van.loc[(van.names_probability > LOWER_BOUND) &
+        (
+         (van.manual_review == True) |
+         (van.names_probability < UPPER_BOUND)
+         )][['voter_file_vanid', 'contactname', 'notetext', 'names_extract']]
     
     # Write out annotated files
     if args.use_civis:
