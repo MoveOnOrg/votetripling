@@ -105,10 +105,18 @@ def main(args):
     # Add Predictions
     van['names_probability'] = model_van_name.predict_proba(X)[:, 1]
 
+    # Don't put any names if we don't know what the names should be
+    van.loc[
+            (van.names_probability < LOWER_BOUND) |
+            (van.names_extract == ""), 'names_extract'
+            ] = "your 3 friends"
+    
     # Get those with confirmed names
-    triplers = van.loc[(van.manual_review == False) & 
-                       ~(van.names_extract == "") &
-                       (van.names_probability > UPPER_BOUND)][['voter_file_vanid', 'names_extract']]
+    triplers = van.loc[(
+            (van.manual_review == False) & 
+            (van.names_probability > UPPER_BOUND)) |
+            (van.names_probability < LOWER_BOUND)
+                        ][['voter_file_vanid', 'names_extract']]
     review = van.loc[(van.names_probability > LOWER_BOUND) &
         (
          (van.manual_review == True) |
