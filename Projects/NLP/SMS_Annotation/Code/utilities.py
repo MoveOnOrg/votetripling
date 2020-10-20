@@ -390,7 +390,8 @@ def add_token_features(data,
                        english_dict, census_dict, census_last_dict, 
                        token_counter, 
                        LOWER_BOUND = .4,
-                       UPPER_BOUND = .75):
+                       UPPER_BOUND = .75,
+                       print_every = 1000):
     # Score tokens for each relevant voter response
     data['name_prob1'] = 0.0
     data['name_prob2'] = 0.0
@@ -401,6 +402,9 @@ def add_token_features(data,
         if (cleanString(row['voterfinal'], ) == "" or row['voterfinal'] is None) and \
             (cleanString(row['voterpost']) == "" or row['voterpost'] is None):
             continue
+
+        if i%print_every == 0:
+            print("processing row %s"%i)
 
         # Featurize available tokens 
         finalCandidates, finalFeatures = get_token_features(row['voterfinal'], row['triplemessage'],
@@ -448,7 +452,8 @@ def add_token_features_van(data, van_token_vectorizer, model_token_bow,
                            english_dict, census_dict, 
                            census_last_dict, token_counter, 
                            LOWER_BOUND = .4,
-                           UPPER_BOUND = .75):
+                           UPPER_BOUND = .75,
+                           print_every = 1000):
     # Score tokens for each relevant voter response
     data['name_prob1'] = 0.0
     data['name_prob2'] = 0.0
@@ -457,6 +462,9 @@ def add_token_features_van(data, van_token_vectorizer, model_token_bow,
     for i, row in data.iterrows():
         if (cleanString(row['notetext'], ) == "" or row['notetext'] is None):
             continue
+
+        if i%print_every == 0:
+            print("processing row %s"%i)
 
         # Featurize available tokens 
         candidates, features = get_token_features(row['notetext'], row['contactname'], 
