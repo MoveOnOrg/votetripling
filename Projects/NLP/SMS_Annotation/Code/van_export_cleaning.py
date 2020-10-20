@@ -109,7 +109,7 @@ def main(args):
     van.loc[
             (van.names_probability < LOWER_BOUND) |
             (van.names_extract == ""), 'names_extract'
-            ] = "your 3 friends"
+            ] = ""
     
     # Get those with confirmed names
     triplers = van.loc[(
