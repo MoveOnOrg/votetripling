@@ -80,10 +80,19 @@ def main(args):
     for i, row in english.iterrows():
         english_dict[row['name']] = row['freq']
 
+    # Ensure data has the right columns
+    for col in ['voter_file_vanid', 'contactname', 'notetext']:
+        if col not in van.columns:
+            raise Exception("%s must be a valid column in the dataset"%col)
+
     # Clean NA values
     van.loc[van.notetext.isnull(), 'notetext'] = ""
     van.loc[van.contactname.isnull(), 'contactname'] = ""
-
+    
+    # Aggregate by van id, combine notetext
+    van['notetext'] = van.groupby(['voter_file_vanid', 'contactname'])['notetext'].transform(lambda x: ','.join(x))
+    van = van[['voter_file_vanid', 'contactname', 'notetext']].drop_duplicates()
+    
     # Number of tokens
     van['num_tokens'] = van.notetext.str.count(" ") + ~(van.notetext == "") 
 
@@ -140,7 +149,7 @@ if __name__ == "__main__":
         "-d", "--database_name", help="Name of database", type=str, required=False, default="Vote Tripling"
     )
     PARSER.add_argument(
-        "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="van_export.csv"
+        "-i", "--input_data_filename", help="Name of aggregated message file", type=str, required=False, default="van_test.csv"
     )
     PARSER.add_argument(
         "-o", "--output_filename", help="File name to dump output", type=str, required=False, default='van_cleaned.csv'
