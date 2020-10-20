@@ -35,6 +35,15 @@ def main(args):
     MID_BOUND = .5
 
 
+    # Ensure data has the right columns
+    for col in ['noresponse', 'negresponse', 'posresponse', 
+                'affirmresponse', 'finalaffirmresponse', 
+                'triplemessage', 'voterresponse',
+                'voterfinal', 'voterpost', 'conversationid',
+                'contact_phone']:
+        if col not in data.columns:
+            raise Exception("%s must be a valid column in the dataset"%col)
+
     print("Loading Models...")
 
 
