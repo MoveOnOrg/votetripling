@@ -18,17 +18,30 @@ library(data.table)
 #' @param inbound       string representing the code for inbound calls
 #' @param outbound      string representing the code for outbound calls
 aggregateMessages <- function(messages, 
-                              messageIdCol = "MessageId",
-                              idCol = "ConversationId", 
-                              dirCol = "MessageDirection",
-                              bodyCol = "MessageBody",
-                              phoneCol = "phonenumber",
-                              inbound = "inbound",
-                              outbound = "outbound") {
+                              triplePhrase = "remind 3 friends",
+                              messageIdCol = "timestamp",
+                              idCol = "conversationid", 
+                              dirCol = "messagedirection",
+                              bodyCol = "messagebody",
+                              phoneCol = "conversationphone",
+                              inbound = "incoming",
+                              outbound = "outgoing") {
+  
+  # Clean Direction
   messages[, direction := tolower(eval(as.name(dirCol)))]
+  
+  # Eliminate messages before the first triple message
+  firstMessages <- messages[grepl(triplePhrase, eval(as.name(bodyCol))), by = idCol, 
+                            list(firstMessage = min(eval(as.name(messageIdCol))))]
+  messages <- merge(messages, firstMessages, by = idCol)
+  messages <- messages[eval(as.name(messageIdCol)) >= firstMessage]
+  
+  # Evaluate message order
   messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
   messages[, by = c(idCol, dirCol), messageOrderDir := rank(eval(as.name(messageIdCol)))]
   messages[, messageOrderDirRev := messageOrder - messageOrderDir]
+  
+  # Aggregate messages
   messages[, conversationid := eval(as.name(idCol))]
   aggMessages <- messages[, by = "conversationid",
                           list(
@@ -97,7 +110,7 @@ categorizeBankerResponse <- function(messagesAgg,
 ##############################
 
 # 3. Put the appropriate file path to the raw text data here <<<
-data <- fread("./Documents/GitHub/votetripling/Projects/NLP/SMS_Annotation/Input_Data/tinasmith_input_sms_cd5_20201001.csv")
+data <- fread("./Documents/GitHub/votetripling/Projects/NLP/SMS_Annotation/Input_Data/WI_votetripling_unaggregated.csv")
 
 # Aggregate data
 agg <- aggregateMessages(data)
