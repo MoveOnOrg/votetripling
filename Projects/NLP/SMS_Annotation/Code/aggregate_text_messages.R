@@ -31,10 +31,12 @@ aggregateMessages <- function(messages,
   messages[, direction := tolower(eval(as.name(dirCol)))]
   
   # Eliminate messages before the first triple message
-  firstMessages <- messages[grepl(triplePhrase, eval(as.name(bodyCol))), by = idCol, 
-                            list(firstMessage = min(eval(as.name(messageIdCol))))]
-  messages <- merge(messages, firstMessages, by = idCol)
-  messages <- messages[eval(as.name(messageIdCol)) >= firstMessage]
+  if (!(triplePhrase == "") | is.null(triplePhrase) | is.na(triplePhrase)) {
+    firstMessages <- messages[grepl(triplePhrase, eval(as.name(bodyCol))), by = idCol, 
+                              list(firstMessage = min(eval(as.name(messageIdCol))))]
+    messages <- merge(messages, firstMessages, by = idCol)
+    messages <- messages[eval(as.name(messageIdCol)) >= firstMessage]
+  }
   
   # Evaluate message order
   messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
