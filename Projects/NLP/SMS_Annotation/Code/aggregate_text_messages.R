@@ -31,7 +31,7 @@ aggregateMessages <- function(messages,
   messages[, direction := tolower(eval(as.name(dirCol)))]
   
   # Eliminate messages before the first triple message
-  if (!(triplePhrase == "") | is.null(triplePhrase) | is.na(triplePhrase)) {
+  if (!((triplePhrase == "") | is.null(triplePhrase) | is.na(triplePhrase))) {
     firstMessages <- messages[grepl(triplePhrase, eval(as.name(bodyCol))), by = idCol, 
                               list(firstMessage = min(eval(as.name(messageIdCol))))]
     messages <- merge(messages, firstMessages, by = idCol)
