@@ -56,6 +56,7 @@ outputfile <- ("gz.vvv_smsresults_1005_agg3")
 
 # ALL ENTRIES SHOULD BE ALL LOWER CASE, REGARDLESS OF THE ORIGINAL
 
+#' triplePhrase:			 phrase indicating the first solicitation of tripling
 #' messageIdCol:			 column name for unique id for each *message*
 #' idCol:			         column name for unique id for each *conversation*
 #' dirCol:		         column name for direction of the message (inbound vs. outbound)
@@ -67,8 +68,8 @@ outputfile <- ("gz.vvv_smsresults_1005_agg3")
 #' outbound      			 string representing the label for outbound SMS
 #														that is, in the raw dataset, how are outbound SMS labeled
 #														in the 'messagedirection' column? usually outbound/outgoing
-
 aggregateMessages <- function(messages, 
+                              triplePhrase = "remind 3 friends",
                               messageIdCol = "timestamp",
                               idCol = "conversation_id", 
                               dirCol = "message_direction",
@@ -76,11 +77,21 @@ aggregateMessages <- function(messages,
                               phoneCol = "contact_phone",
                               inbound = "incoming",
                               outbound = "outgoing") {
+  # Clean Direction
   messages[, direction := tolower(eval(as.name(dirCol)))]
-  messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)), ties.method = "random")]
+  
+  # Eliminate messages before the first triple message
+  firstMessages <- messages[grepl(triplePhrase, eval(as.name(bodyCol))), by = idCol, 
+                            list(firstMessage = min(eval(as.name(messageIdCol))))]
+  messages <- merge(messages, firstMessages, by = idCol)
+  messages <- messages[eval(as.name(messageIdCol)) >= firstMessage]
+  
+  # Evaluate message order
+  messages[, by = idCol, messageOrder := rank(eval(as.name(messageIdCol)))]
   messages[, by = c(idCol, dirCol), messageOrderDir := rank(eval(as.name(messageIdCol)))]
   messages[, messageOrderDirRev := messageOrder - messageOrderDir]
-  messages[, conversationid := as.character(eval(as.name(idCol)))]
+  
+  # Aggregate messages
   aggMessages <- messages[, by = "conversationid",
                           list(
                             contact_phone = max(eval(as.name(phoneCol))),
