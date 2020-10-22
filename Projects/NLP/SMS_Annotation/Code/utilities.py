@@ -21,11 +21,15 @@ from pathlib import Path
 stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
-POSSESSIVES = "\\b(my|his|her|their|our|step)\\b"
+POSSESSIVES = "\\b(my|his|her|their|our)\\b"
 RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
 EXCLUDE = "\\b(your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
+NAME_SEPARATORS = "\\band\\b|&|\\.|,|\\n|\n|\\\\n"
+NAME_AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b"
+EXCLUDE_NAMES = "\\b(trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b"
+
 
 ################################
 # Data Loading
@@ -85,6 +89,76 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
     return re.sub('\\s+', ' ', noChar).strip()
 
 ################################
+# Functions for cleaning and presenting labeled names
+################################
+
+def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES):
+    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", name_string)
+    camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceSpecials)
+    noAffixes = re.sub(affixes, "", camelCleaned)
+    noParen = re.sub("\\(.*\\)", "", noAffixes)
+    return noParen
+
+def clean_labeled_names(names, response = None, 
+                        seperators = NAME_SEPARATORS, 
+                        excluded = EXCLUDE_NAMES, 
+                        relationships = RELATIONSHIPS,
+                        affixes = re.compile(NAME_AFFIXES, re.I)):
+    
+    # Split the name by any and all known delimiters
+    names_clean = clean_labeled_name_string(names)
+    names_split = [t.strip() for t in re.split(seperators, names_clean) if not t.strip() == ""]
+    
+    # If we weren't able to split anything and its a 3 token response then just split by spaces
+    if len(names_split) == 1 or (len(names_split) == 2 and re.search("(\\band\\b|&)", names_clean) is not None):
+        names_split_spaces = [t.strip() for t in re.split(seperators+"| ", names_clean) if not t.strip() == ""]
+        if len(names_split_spaces) == 3:
+            names_split = names_split_spaces
+    
+     # Clean up the raw response, in which we will search for the tokens, if provided
+    if response:
+        response = clean_labeled_name_string(response)
+        response_tokens = response.split(' ')
+    else:
+        response_tokens = []
+    
+    # Clean up each name section
+    names_final = []
+    for name in names_split:
+        # Exclude bad names
+        if re.match(excluded, name.lower()) is not None:
+            continue
+        
+        # Eliminate affixes
+        name = re.sub(affixes, "", name).strip()
+        
+        # Singular names we will do some work to ensure they are correct
+        # (Any long multi-token strings we will just assume they are correct)
+        if len(name.split(" ")) == 1:
+                        
+            # For relationships, add the appropriate 'your'
+            if re.match(relationships, name.lower()) is not None:
+                name = 'your ' + name.lower()   
+            else:
+                # If it isn't found in the response, do spell check
+                if len(response_tokens) > 0 and not name in response_tokens:
+                    best_match_token = get_best_match_token(name, response_tokens)
+                    if best_match_token:
+                        name = best_match_token
+
+                # For initials, uppercase the whole thing
+                if len(name) < 3:
+                    name = name.upper()
+                # For names, capitalize
+                else:
+                    name = name.capitalize()
+        if not name in names_final:
+            names_final.append(name)
+            
+    # Present the tokens
+    return stringify_tokens(names_final, dedupe = False)
+
+################################
 # Functions for cleaning and presenting names
 ################################
 
@@ -101,7 +175,7 @@ def get_best_match_token(t, tokens_to_match):
     return best_match_token
 
 
-def clean_labeled_names(names, response = None, triple_message = None, affixes = AFFIXES):
+def clean_labeled_names_modeling(names, response = None, triple_message = None, affixes = AFFIXES):
     namesClean = re.sub(affixes, "", cleanString(names))
     namesClean = re.sub('\\s+', ' ', namesClean).strip()
     name_tokens = namesClean.split(' ')
@@ -143,12 +217,13 @@ def present_tokens(clean_tokens,
     for j, token in enumerate(clean_tokens):
         # For relationships, look for the proper modifier
         if re.match(relations, token):
-            pos_match = re.search("\\b(his|her|their|step) %s"%token, response)
+            pos_match = re.search("\\b(his|her|their|step|[a-z]+'s) %s"%token, response)
             if pos_match and not is_van_text:
                 token = pos_match.group()
             else:
                 token = "your " + token
         elif re.match(possessive, token) is not None or \
+             re.search("%s's"%token, response) is not None or \
              re.match(excluded, token) is not None or \
              token in triple_tokens:
              continue
@@ -164,8 +239,12 @@ def present_tokens(clean_tokens,
     return stringify_tokens(good_tokens)
 
 # Turn a list of tokens into one string
-def stringify_tokens(good_tokens):
-    name_tokens = list(set(good_tokens))
+def stringify_tokens(good_tokens, dedupe = True):
+    if dedupe:
+        name_tokens = list(set(good_tokens))
+    else:
+        name_tokens = good_tokens
+        
     if len(name_tokens) < 1:
         return ''
     if len(name_tokens) > 1:
@@ -293,6 +372,8 @@ def get_token_features(voterResponse,
     candidate_token_positions = [i for i, t in enumerate(clean_tokens) \
                         # must be a wordlike, non "And" tooken
                         if is_wordlike[i] and not is_and[i] \
+                        # must be longer than 1 letter
+                        and len(t) > 1 \
                         # not an excluded phrase
                         and not is_exclude[i] \
                         # not proceeded by disqualifying phrase

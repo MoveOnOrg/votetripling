@@ -38,7 +38,7 @@ def main(args):
         names = row['names']
         response = row['voterresponse'] + ' ' + row['voterfinal'] + ' ' + row['voterpost']
         triple_message = row['triplemessage']
-        data.loc[i, 'clean_names'] = clean_labeled_names(names, response, triple_message)
+        data.loc[i, 'clean_names'] = clean_labeled_names(names, response)
 
     # Write out annotated file
     if args.use_civis:
