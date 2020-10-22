@@ -20,7 +20,7 @@ from sklearn.metrics import roc_curve, precision_recall_curve, roc_auc_score
 import matplotlib.ticker as mtick
 from itertools import dropwhile
 from scipy.sparse import hstack
-from utilities import get_token_features, stemmer, normalize_token, clean_labeled_names, extract_good_tokens, cleanString
+from utilities import get_token_features, stemmer, normalize_token, clean_labeled_names_modeling, extract_good_tokens, cleanString
 
 def get_response_names(namesClean,
                        poss = "\\b(your|my|his|her|their|our|step|and|[0-9])\\b"):
@@ -125,7 +125,7 @@ labeled['namesClean'] = ''
 for i, row in labeled.loc[~(labeled.names == '')].iterrows():
     names = row['names']
     response = row['voterResponse'] + ' ' + row['voterFinal'] + ' ' + row['voterPost']
-    labeled.loc[i, 'namesClean'] = clean_labeled_names(names, response)
+    labeled.loc[i, 'namesClean'] = clean_labeled_names_modeling(names, response)
 labeled = labeled.loc[~(~(labeled.names == "") & (labeled.namesClean == ""))]
 
 van.index = np.arange(len(van))
@@ -133,7 +133,7 @@ van['namesClean'] = ''
 for i, row in van.loc[~(van.names_extract == '')].iterrows():
     names = row['names_extract']
     response = row['notetext']
-    van.loc[i, 'namesClean'] = clean_labeled_names(names, response)
+    van.loc[i, 'namesClean'] = clean_labeled_names_modeling(names, response)
 van = van.loc[~(~(van.names_extract == "") & (van.namesClean == ""))]
 
 

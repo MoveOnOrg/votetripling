@@ -26,11 +26,11 @@ def main(args):
     data.loc[data.names.isnull(), 'names'] = ""
     data = data.loc[~(data.names == '')][['names']]
 
-    # Clean Names
+    # Clean Namesd
     data['clean_names'] = ''
     for i, row in data.iterrows():
         names = row['names']
-        data.loc[i, 'clean_names'] = clean_labeled_names(names, names)
+        data.loc[i, 'clean_names'] = clean_labeled_names(names)
 
     # Write out annotated file
     if args.use_civis:
