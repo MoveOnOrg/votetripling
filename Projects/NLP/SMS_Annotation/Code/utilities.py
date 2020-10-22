@@ -118,7 +118,8 @@ def clean_labeled_names(names, response = None,
      # Clean up the raw response, in which we will search for the tokens, if provided
     if response:
         response = clean_labeled_name_string(response)
-        response_tokens = response.split(' ')
+        response = re.sub(seperators, "", names)
+        response_tokens = [t for t in response.split(' ') if not t == ""]
     else:
         response_tokens = []
     
