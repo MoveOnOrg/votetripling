@@ -122,7 +122,7 @@ def main(args):
     
     # Get those with confirmed names
     triplers = van.loc[(
-            (van.manual_review == False) & 
+            ~(van.manual_review == True) & 
             (van.names_probability > UPPER_BOUND)) |
             (van.names_probability < LOWER_BOUND)
                         ][['voter_file_vanid', 'names_extract']]
