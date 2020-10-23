@@ -24,7 +24,7 @@ def main(args):
 
     # Only Retain relevant data
     data.loc[data.names.isnull(), 'names'] = ""
-    data = data.loc[~(data.names == '')][['names']]
+    data = data.loc[~(data.names == '')]
 
     # Clean Namesd
     data['clean_names'] = ''
