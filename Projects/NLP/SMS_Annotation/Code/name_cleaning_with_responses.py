@@ -30,8 +30,8 @@ def main(args):
     data.loc[data.names.isnull(), 'names'] = ""
 
     # Only Retain relevant data
-    data = data.loc[~(data.names == '')][['names', 'voterresponse', 'voterfinal', 'voterpost', 'triplemessage']]
-    
+    data = data.loc[~(data.names == '')]
+
     # Clean Names
     data['clean_names'] = ''
     for i, row in data.iterrows():
