@@ -22,8 +22,8 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
-EXCLUDE = "\\b(your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
+RELATIONSHIPS = "\\b((step|grand)[- ]?)?(relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
+EXCLUDE = "\\b(votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 NAME_SEPARATORS = "\\band\\b|&|\\.|,|\\n|\n|\\\\n"
@@ -78,7 +78,7 @@ def get_list(lst, index):
         return lst[index]
 
 def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b'):
-    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", string)
+    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", string)
     noNewLine = re.sub(NEW_LINE_REG, " ", replaceSpecials)
     if splitCamel:
         camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", noNewLine)
@@ -92,8 +92,9 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 # Functions for cleaning and presenting labeled names
 ################################
 
-def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES):
-    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", name_string)
+def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
+    replacePossessive = re.sub(possessives, "your", name_string)
+    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", replacePossessive)
     camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceSpecials)
     noAffixes = re.sub(affixes, "", camelCleaned)
     noParen = re.sub("\\(.*\\)", "", noAffixes)
