@@ -22,8 +22,8 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
-EXCLUDE = "\\b(votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
+RELATIONSHIPS = "\\b((step|grand)[- ]?)?(gf|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
+EXCLUDE = "\\b(group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 NAME_SEPARATORS = "\\band\\b|&|\\.|,|\\n|\n|\\\\n"
@@ -66,10 +66,12 @@ def get_doc(voterResponse):
     voterResponseClean = re.sub("\\.", ". ", voterResponseClean)
     voterResponseClean = re.sub(",", ", ", voterResponseClean)
     voterResponseClean = re.sub("\\&", " and ", voterResponseClean)
-    voterResponseClean = re.sub("\\s+", " ", voterResponseClean)
+    voterResponseClean = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", voterResponseClean)
     voterResponseCamelized = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", voterResponseClean)
-    return nlp(voterResponseCamelized)
-
+    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", voterResponseCamelized)
+    noParen = re.sub("\\(.*?\\)", "", replaceSpecials)
+    responseFinal = re.sub("\\s+", " ", noParen.strip())
+    return nlp(responseFinal)
 
 def get_list(lst, index):
     if index < 0 or index >= len(lst):
@@ -78,8 +80,10 @@ def get_list(lst, index):
         return lst[index]
 
 def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b'):
-    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", string)
-    noNewLine = re.sub(NEW_LINE_REG, " ", replaceSpecials)
+    replaceSpecials = re.sub("\\b(in|co|step)[- ]", "\\1", string)
+    replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
+    noParen = re.sub("\\(.*?\\)", "", replaceApost)
+    noNewLine = re.sub(NEW_LINE_REG, " ", noParen)
     if splitCamel:
         camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", noNewLine)
     else:
@@ -94,10 +98,11 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 
 def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
     replacePossessive = re.sub(possessives, "your", name_string)
-    replaceSpecials = re.sub("(in law|in-law)[s]*", "inlaws", replacePossessive)
-    camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceSpecials)
+    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", replacePossessive)
+    replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
+    camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceApost)
     noAffixes = re.sub(affixes, "", camelCleaned)
-    noParen = re.sub("\\(.*\\)", "", noAffixes)
+    noParen = re.sub("\\(.*?\\)", "", noAffixes)
     return noParen
 
 def clean_labeled_names(names, response = None, 
@@ -334,7 +339,8 @@ def featurize_wordlike_token(raw_position,
             'parent_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[raw_position].ancestors]) > 0,
             'child_name' : np.sum([census_dict.get(normalize_token(tok.string), smooth_census) for tok in doc[raw_position].ancestors]) > 0,
             'is_cap' : re.match('[A-Z]', raw_token) is not None,
-            'is_ent' : len([e for e in persons if e.start >= raw_position and e.end <= raw_position]) > 0
+            'is_ent' : len([e for e in persons if e.start >= raw_position and e.end <= raw_position]) > 0,
+            'pos' : doc[raw_position].pos_
             }
     return feature_dict
 
@@ -369,7 +375,7 @@ def get_token_features(voterResponse,
     is_wordlike = [not t == "" for t in clean_tokens]
     is_relationship = [re.match(relationship_reg, t) is not None for t in clean_tokens]
     persons = list(doc.ents)
-    
+
     # Reduce to name candidates
     candidate_token_positions = [i for i, t in enumerate(clean_tokens) \
                         # must be a wordlike, non "And" tooken
@@ -399,11 +405,14 @@ def get_token_features(voterResponse,
                 )
         
         # Lexicon Features
-        X_prev = van_token_vectorizer.transform([position_features['token_prev']])
-        X_token = van_token_vectorizer.transform([clean_tokens[raw_position]])
-        X_next = van_token_vectorizer.transform([position_features['token_next']])
-        X_bow_row = hstack((X_prev, X_token, X_next))
-        position_features['lexicon_prediction'] = model_token_bow.predict_proba(X_bow_row)[0,1]
+        if van_token_vectorizer:
+            X_prev = van_token_vectorizer.transform([position_features['token_prev']])
+            X_token = van_token_vectorizer.transform([clean_tokens[raw_position]])
+            X_next = van_token_vectorizer.transform([position_features['token_next']])
+            X_bow_row = hstack((X_prev, X_token, X_next))
+            position_features['lexicon_prediction'] = model_token_bow.predict_proba(X_bow_row)[0,1]
+        else:
+            position_features['lexicon_prediction'] = 0.0
 
         # Calculate features for this token
         token_features = featurize_wordlike_token(
@@ -440,7 +449,7 @@ def get_token_features(voterResponse,
             }
 
     # Which features from adjacent candidates may be relevant?
-    adjacent_features = ['token_length', 'relationship', 'eng_prob', 'name_prob', 'corpus_prob', 'last_name_prob', 'is_cap']
+    adjacent_features = ['token_length', 'relationship', 'eng_prob', 'name_prob', 'corpus_prob', 'last_name_prob', 'is_cap', 'pos']
 
     # Add features from adjacent tokens
     for i, tf in enumerate(all_token_features):
@@ -465,6 +474,17 @@ def get_token_features(voterResponse,
                 tf[next_feature_name] = all_token_features[i + 1][feature]
 
     return candidate_tokens, all_token_features
+
+
+def add_pos_features(tokens_df,
+                     accepted_pos = ['VERB', 'NOUN', 'PROPN', 'ADP', 'ADV', 'ADJ', 'PRON', 'DET', 'PART'],
+                     pos_cols = ['pos', 'pos_next', 'pos_prev']):
+    for col in pos_cols:
+        suffix = col.replace('pos', '')
+        for pos_type in accepted_pos:
+            new_col = pos_type + suffix
+            tokens_df[new_col] = tokens_df[col] == pos_type
+    return tokens_df
 
 # Aggregate token features for an entire dataset
 def add_token_features(data, 
@@ -503,8 +523,15 @@ def add_token_features(data,
         
         if len(candidates) <= 0:
             continue
+        
+        # Tokens for this row
+        tokens_row = pd.DataFrame(finalFeatures + postFeatures)
+        
+        # Featurize parts of speech
+        tokens_row = add_pos_features(tokens_row)
+
         # Predict probability of each being a name
-        X_tokens_row = pd.DataFrame(finalFeatures + postFeatures)[Features].values.astype(float)
+        X_tokens_row = tokens_row[Features].values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
 
         # Do we have an uncertain token?
@@ -559,8 +586,14 @@ def add_token_features_van(data, van_token_vectorizer, model_token_bow,
         if len(candidates) <= 0:
             continue
 
+        # Tokens for this row
+        tokens_row = pd.DataFrame(features)
+        
+        # Featurize parts of speech
+        tokens_row = add_pos_features(tokens_row)
+
         # Predict probability of each being a name
-        X_tokens_row = pd.DataFrame(features)[Features].values.astype(float)
+        X_tokens_row = tokens_row[Features].values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
 
         # Do we have an uncertain token?
