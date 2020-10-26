@@ -213,26 +213,8 @@ X_final = final_vectorizer.fit_transform(labeled.voterFinal)
 post_vectorizer = CountVectorizer(ngram_range=(1, 2), token_pattern=r'\b\w+\b', min_df=5)
 X_post = post_vectorizer.fit_transform(labeled.voterPost)
 
-# Peripheral Features
-main_feature_names = ['noResponse', 'negResponse', 'posResponse', 
-                      'affirmResponse', 'finalAffirmResponse', 
-                      'name_prob1', 'name_prob2', 'name_prob3', 
-                      'num_tokens_response',
-                      'num_tokens_final',
-                      'num_tokens_post']
-X_features = labeled[main_feature_names].values * 1
-
-# Combine features
-X = hstack((X_response, X_final, X_post, X_features.astype('float')))
-
-# Response Variables
-y_tripler = pd.get_dummies(labeled.tripler.astype('category'))
-y_optout = pd.get_dummies(labeled.optout.astype('category'))
-y_names = 1*~(labeled.names.isnull() | (labeled.names == ""))
-y_wrongnumber = pd.get_dummies(labeled.wrongnumber.astype('category'))
-
 # Train/Test
-train, test, X_train, X_test = train_test_split(np.arange(X.shape[0]), X)
+train, test = train_test_split(np.arange(len(labeled)))
 
 
 ################################
@@ -301,15 +283,7 @@ model_token_bow = LogisticRegressionCV(penalty='l1', solver='liblinear', class_w
 model_token_bow.fit(X_bow_train, y_train_tokens)
 
 # Featurize parts of speech
-accepted_pos = ['VERB', 'NOUN', 'PROPN', 'ADP', 'ADV', 'ADJ', 'PRON', 'DET', 'PART']
-pos_cols = ['pos', 'pos_next', 'pos_prev']
-pos_type_cols = []
-for col in pos_cols:
-    suffix = col.replace('pos', '')
-    for pos_type in accepted_pos:
-        new_col = pos_type + suffix
-        pos_type_cols.append(new_col)
-        token_df[new_col] = token_df[col] == pos_type
+token_df = add_pos_features(token_df)
 
 # Predictions from BOW
 token_df['lexicon_prediction'] = model_token_bow.predict_proba(X_bow)[:, 1]
@@ -329,7 +303,8 @@ X_test_tokens = X_tokens[test_tokens, :]
 token_model = RandomForestClassifier(n_estimators = 250, 
                                      min_samples_split = 10,
                                      min_samples_leaf = 4,
-                                     oob_score = True)
+                                     oob_score = True,
+                                     class_weight = class_weight)
 token_model.fit(X_train_tokens, y_train_tokens)
 
 # Evaluate
@@ -343,9 +318,6 @@ plt.show()
 token_test =  token_df.loc[test_tokens]
 token_test.loc[(token_df['prob'] > .75) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob']]
 token_test.loc[(token_df['prob'] < .25) & (token_df['response'] == True)][['token', 'full', 'actual', 'prob']]
-
-token_test.loc[(token_df['relationship'] == True) & (token_df['response'] == False)][['token', 'full', 'actual', 'prob', 'source']]
-
 
 token_test.loc[(token_df['prob'] > .75) & (token_df['response'] == False)][['token', 
                'full', 'actual', 'prob', 'source']].to_csv("../Output_Data/false_positives.csv")
@@ -380,6 +352,7 @@ for i, row in labeled.iterrows():
     candidates = finalCandidates + postCandidates
     if len(candidates) > 0:
         row_token_df = pd.DataFrame(finalFeatures + postFeatures)
+        row_token_df = add_pos_features(row_token_df)
         X_tokens_row = row_token_df[Features].values.astype(float)
         y_pred = token_model.predict_proba(X_tokens_row)
         top3_tokens = sorted(y_pred[:,1])[::-1][0:3]
@@ -434,6 +407,26 @@ van.index = np.arange(len(van))
 ################################
 # General Model Training SMS
 ################################
+
+# Peripheral Features
+main_feature_names = ['noResponse', 'negResponse', 'posResponse', 
+                      'affirmResponse', 'finalAffirmResponse', 
+                      'name_prob1', 'name_prob2', 'name_prob3', 
+                      'num_tokens_response',
+                      'num_tokens_final',
+                      'num_tokens_post']
+X_features = labeled[main_feature_names].values * 1
+
+# Combine features
+X = hstack((X_response, X_final, X_post, X_features.astype('float')))
+X_train = X.tocsr()[train, :]
+
+# Response Variables
+y_tripler = pd.get_dummies(labeled.tripler.astype('category'))
+y_optout = pd.get_dummies(labeled.optout.astype('category'))
+y_names = 1*~(labeled.names.isnull() | (labeled.names == ""))
+y_wrongnumber = pd.get_dummies(labeled.wrongnumber.astype('category'))
+
 
 # Is this a tripler?
 model_tripler = LogisticRegressionCV(penalty='l1', solver='liblinear')
@@ -513,7 +506,7 @@ token_importance.sort_values('importance')
 # Pickle all models and featurizers
 ################################
 
-pickle_file = Path(home, "models", "annotation_models.pkl")
+pickle_file = Path(home, "Models", "annotation_models.pkl")
 with open(pickle_file, "wb") as f:
     # N-Gram Featurizers
     pickle.dump(response_vectorizer, f)

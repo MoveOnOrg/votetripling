@@ -483,7 +483,7 @@ def add_pos_features(tokens_df,
         suffix = col.replace('pos', '')
         for pos_type in accepted_pos:
             new_col = pos_type + suffix
-            tokens_df[new_col] = tokens_df[col] == pos_type
+            tokens_df[new_col] = tokens_df[col].astype(str) == pos_type
     return tokens_df
 
 # Aggregate token features for an entire dataset
@@ -630,7 +630,13 @@ def featurize_conversation_van(data, van_vectorizer):
 
     return X
 
-def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer):
+def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vectorizer,
+                           extra_features = ['noresponse', 'negresponse', 'posresponse', 
+                           'affirmresponse', 'finalaffirmresponse', 
+                           'name_prob1', 'name_prob2', 'name_prob3', 
+                           'num_tokens_response',
+                           'num_tokens_final',
+                           'num_tokens_post']):
     # Voter Response
     X_response = response_vectorizer.transform(data['voterresponse'])
 
@@ -641,12 +647,7 @@ def featurize_conversation(data, response_vectorizer, final_vectorizer, post_vec
     X_post = post_vectorizer.transform(data['voterpost'])
 
     # Peripheral Features
-    X_features = data[['noresponse', 'negresponse', 'posresponse', 
-                       'affirmresponse', 'finalaffirmresponse', 
-                       'name_prob1', 'name_prob2', 'name_prob3', 
-                       'num_tokens_response',
-                       'num_tokens_final',
-                       'num_tokens_post']].values * 1
+    X_features = data[extra_features].values * 1
 
     # Combine features
     X = hstack((X_response, X_final, X_post, X_features.astype('float')))
