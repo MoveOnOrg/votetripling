@@ -23,12 +23,12 @@ nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our)\\b"
 RELATIONSHIPS = "\\b((step|grand)[- ]?)?(gf|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
-EXCLUDE = "\\b(group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
+EXCLUDE = "\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
 NAME_SEPARATORS = "\\band\\b|&|\\.|,|\\n|\n|\\\\n"
 NAME_AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b"
-EXCLUDE_NAMES = "\\b(trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b"
+EXCLUDE_NAMES = "\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|members|everybody|everyone|trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b"
 
 
 ################################
