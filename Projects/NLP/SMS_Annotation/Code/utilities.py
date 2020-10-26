@@ -108,11 +108,18 @@ def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives =
     noParen = re.sub("\\(.*?\\)", "", noAffixes)
     return noParen
 
+def is_email(string):
+    return re.search("@", string) is not None
+
 def clean_labeled_names(names, response = None, 
                         seperators = NAME_SEPARATORS, 
                         excluded = EXCLUDE_NAMES, 
                         relationships = RELATIONSHIPS,
+                        possessives = POSSESSIVES,
                         affixes = re.compile(NAME_AFFIXES, re.I)):
+    # Break for emails or phone numbers
+    if is_email(names):
+        return ""
     
     # Split the name by any and all known delimiters
     names_clean = clean_labeled_name_string(names)
@@ -136,7 +143,9 @@ def clean_labeled_names(names, response = None,
     names_final = []
     for name in names_split:
         # Exclude bad names
-        if re.match(excluded, name.lower()) is not None:
+        if re.match(excluded, name.lower()) is not None and \
+            re.match(possessives, name.lower()) is not None and \
+            re.search("[0-9]", name) is not None:
             continue
         
         # Eliminate affixes
@@ -164,7 +173,8 @@ def clean_labeled_names(names, response = None,
                     name = name.capitalize()
         if not name in names_final:
             names_final.append(name)
-            
+    names_final = [t for t in names_final if not t == ""]
+    
     # Present the tokens
     return stringify_tokens(names_final, dedupe = False)
 
