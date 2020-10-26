@@ -98,7 +98,7 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 
 def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
     replacePossessive = re.sub(possessives, "your", name_string)
-    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", replacePossessive)
+    replaceSpecials = re.sub("\\b(in|co|step)[- ]", "\\1", replacePossessive)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceApost)
     noAffixes = re.sub(affixes, "", camelCleaned)
