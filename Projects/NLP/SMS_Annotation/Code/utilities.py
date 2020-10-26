@@ -99,8 +99,8 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 ################################
 
 def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
-    replacePossessive = re.sub(possessives, "your", name_string)
-    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", replacePossessive)
+    #replacePossessive = re.sub(possessives, "your", name_string)
+    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", name_string)
     replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceApost)
@@ -127,7 +127,15 @@ def clean_labeled_names(names, response = None,
     
     # If we weren't able to split anything and its a 3 token response then just split by spaces
     if len(names_split) == 1 or (len(names_split) == 2 and re.search("(\\band\\b|&)", names_clean) is not None):
-        names_split_spaces = [t.strip() for t in re.split(seperators+"| ", names_clean) if not t.strip() == ""]
+        names_split_spaces = []
+        for name in re.split(seperators+"| ", names_clean):
+            # Exclude bad names
+            if not name.strip() == "" and \
+                re.match(excluded, name.lower()) is not None and \
+                re.match(possessives, name.lower()) is not None and \
+                re.search("[0-9]", name) is not None:
+                    names_split_spaces.append(name.strip())
+            
         if len(names_split_spaces) == 3:
             names_split = names_split_spaces
     
@@ -141,13 +149,7 @@ def clean_labeled_names(names, response = None,
     
     # Clean up each name section
     names_final = []
-    for name in names_split:
-        # Exclude bad names
-        if re.match(excluded, name.lower()) is not None and \
-            re.match(possessives, name.lower()) is not None and \
-            re.search("[0-9]", name) is not None:
-            continue
-        
+    for name in names_split:        
         # Eliminate affixes
         name = re.sub(affixes, "", name).strip()
         
