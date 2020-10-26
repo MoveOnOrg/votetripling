@@ -68,7 +68,8 @@ def get_doc(voterResponse):
     voterResponseClean = re.sub("\\&", " and ", voterResponseClean)
     voterResponseClean = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", voterResponseClean)
     voterResponseCamelized = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", voterResponseClean)
-    replaceSpecials = re.sub("(in|co|step)[- ]", "\\1", voterResponseCamelized)
+    replaceSpecials = re.sub("(co|step)[- ]", "\\1", voterResponseCamelized)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
     noParen = re.sub("\\(.*?\\)", "", replaceSpecials)
     responseFinal = re.sub("\\s+", " ", noParen.strip())
     return nlp(responseFinal)
@@ -80,7 +81,8 @@ def get_list(lst, index):
         return lst[index]
 
 def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b'):
-    replaceSpecials = re.sub("\\b(in|co|step)[- ]", "\\1", string)
+    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", string)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     noParen = re.sub("\\(.*?\\)", "", replaceApost)
     noNewLine = re.sub(NEW_LINE_REG, " ", noParen)
@@ -98,7 +100,8 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 
 def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
     replacePossessive = re.sub(possessives, "your", name_string)
-    replaceSpecials = re.sub("\\b(in|co|step)[- ]", "\\1", replacePossessive)
+    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", replacePossessive)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceApost)
     noAffixes = re.sub(affixes, "", camelCleaned)
