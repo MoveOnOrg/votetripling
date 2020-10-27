@@ -34,11 +34,13 @@ def main(args):
 
     # Clean Names
     data['clean_names'] = ''
+    data['review'] = False
     for i, row in data.iterrows():
         names = row['names']
         response = row['voterresponse'] + ' ' + row['voterfinal'] + ' ' + row['voterpost']
-        triple_message = row['triplemessage']
-        data.loc[i, 'clean_names'] = clean_labeled_names(names, response)
+        clean_names, review = clean_labeled_names(names, response)
+        data.loc[i, 'clean_names'] = clean_names
+        data.loc[i, 'review'] = review
 
     # Write out annotated file
     if args.use_civis:

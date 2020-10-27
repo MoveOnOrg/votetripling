@@ -20,15 +20,15 @@ from pathlib import Path
 
 stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
-AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
-POSSESSIVES = "\\b(my|his|her|their|our)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
-EXCLUDE = "\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
-EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
+AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b", re.IGNORECASE)
+POSSESSIVES = re.compile("\\b(my|his|her|their|our)\\b", re.IGNORECASE)
+RELATIONSHIPS = re.compile("\\b(step|grand|ex)?(gardener|student|teacher|client|patient|doctor|gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b", re.IGNORECASE)
+EXCLUDE = re.compile("\\b(more|person|people|high|school|best|college|one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b", re.IGNORECASE)
+EXCLUDE_PRIOR = re.compile("\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b", re.IGNORECASE)
 NEW_LINE_REG = "\\n|\n|\\\\n"
 NAME_SEPARATORS = "\\band\\b|&|\\.|,|\\n|\n|\\\\n"
-NAME_AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b"
-EXCLUDE_NAMES = "\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|members|everybody|everyone|trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b"
+NAME_AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b", re.IGNORECASE)
+EXCLUDE_NAMES = re.compile("\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|members|everybody|everyone|trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b", re.IGNORECASE)
 
 
 ################################
@@ -68,8 +68,8 @@ def get_doc(voterResponse):
     voterResponseClean = re.sub("\\&", " and ", voterResponseClean)
     voterResponseClean = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", voterResponseClean)
     voterResponseCamelized = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", voterResponseClean)
-    replaceSpecials = re.sub("(co|step)[- ]", "\\1", voterResponseCamelized)
-    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
+    replaceSpecials = re.sub("(co|step)[- ]", "\\1", voterResponseCamelized, flags = re.I)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials, flags = re.I)
     noParen = re.sub("\\(.*?\\)", "", replaceSpecials)
     responseFinal = re.sub("\\s+", " ", noParen.strip())
     return nlp(responseFinal)
@@ -81,8 +81,8 @@ def get_list(lst, index):
         return lst[index]
 
 def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b'):
-    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", string)
-    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
+    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", string, flags = re.I)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials, flags = re.I)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     noParen = re.sub("\\(.*?\\)", "", replaceApost)
     noNewLine = re.sub(NEW_LINE_REG, " ", noParen)
@@ -99,14 +99,21 @@ def cleanString(string, splitCamel = True, exclude_reg = '\\&|\\band\\b|\\bmy\\b
 ################################
 
 def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives = POSSESSIVES):
-    #replacePossessive = re.sub(possessives, "your", name_string)
-    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", name_string)
-    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials)
+    replaceAbrev = re.sub("\\b([A-Z])\\.", "\\1", name_string)
+    replacePossessive = re.sub(possessives, "your", replaceAbrev)
+    replaceSpecials = re.sub("\\b(co|step)[- ]", "\\1", replacePossessive, flags = re.I)
+    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials, flags = re.I)
     replaceApost = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", replaceSpecials)
     camelCleaned = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", replaceApost)
     noAffixes = re.sub(affixes, "", camelCleaned)
     noParen = re.sub("\\(.*?\\)", "", noAffixes)
-    return noParen
+    noPunct = re.sub("[\\!\\?\\+\\-\\:\\/\\#\\$\\%\\^\\*]", "", noParen)
+    return noPunct
+
+def present_labeled_name_string(labeled_names_cleaned):
+    final_string = re.sub("\\binlaw", "in-law", labeled_names_cleaned)
+    final_string = re.sub("\\b(step)", "\\1-", final_string)
+    return final_string
 
 def is_email(string):
     return re.search("@", string) is not None
@@ -116,10 +123,14 @@ def clean_labeled_names(names, response = None,
                         excluded = EXCLUDE_NAMES, 
                         relationships = RELATIONSHIPS,
                         possessives = POSSESSIVES,
-                        affixes = re.compile(NAME_AFFIXES, re.I)):
+                        affixes = NAME_AFFIXES,
+                        review_terms = "\\b(trump|vote|voting|year|ballot|poll|democrat|republican|biden|kamala|admin)\\b",
+                        review_length_threshold = 4):
+    review_candidate = False
+
     # Break for emails or phone numbers
     if is_email(names):
-        return ""
+        return "", True
     
     # Split the name by any and all known delimiters
     names_clean = clean_labeled_name_string(names)
@@ -153,9 +164,14 @@ def clean_labeled_names(names, response = None,
         # Eliminate affixes
         name = re.sub(affixes, "", name).strip()
         
+        # Super long names or names with weird terms should get reviewed
+        if len(re.split("\\s+", name)) >= review_length_threshold or \
+            re.search(review_terms, name) is not None:
+            review_candidate = True
+        
         # Singular names we will do some work to ensure they are correct
         # (Any long multi-token strings we will just assume they are correct)
-        if len(name.split(" ")) == 1:
+        if len(re.split("\\s+", name)) == 1:
                         
             # For relationships, add the appropriate 'your'
             if re.match(relationships, name.lower()) is not None:
@@ -178,7 +194,8 @@ def clean_labeled_names(names, response = None,
     names_final = [t for t in names_final if not t == ""]
     
     # Present the tokens
-    return stringify_tokens(names_final, dedupe = False)
+    extracted_names_string = stringify_tokens(names_final, dedupe = False)
+    return present_labeled_name_string(extracted_names_string), review_candidate
 
 ################################
 # Functions for cleaning and presenting names
