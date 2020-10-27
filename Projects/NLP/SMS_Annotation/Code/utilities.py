@@ -22,7 +22,7 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = "\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b"
 POSSESSIVES = "\\b(my|his|her|their|our)\\b"
-RELATIONSHIPS = "\\b((step|grand)[- ]?)?(gf|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
+RELATIONSHIPS = "\\b((step|grand)[- ]?)?(gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b"
 EXCLUDE = "\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b"
 EXCLUDE_PRIOR = "\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b"
 NEW_LINE_REG = "\\n|\n|\\\\n"
@@ -131,9 +131,9 @@ def clean_labeled_names(names, response = None,
         for name in re.split(seperators+"| ", names_clean):
             # Exclude bad names
             if not name.strip() == "" and \
-                re.match(excluded, name.lower()) is not None and \
-                re.match(possessives, name.lower()) is not None and \
-                re.search("[0-9]", name) is not None:
+                re.match(excluded, name.lower()) is None and \
+                re.match(possessives, name.lower()) is None and \
+                re.search("[0-9]", name) is None:
                     names_split_spaces.append(name.strip())
             
         if len(names_split_spaces) == 3:
