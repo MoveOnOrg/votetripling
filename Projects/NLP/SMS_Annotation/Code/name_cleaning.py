@@ -28,9 +28,12 @@ def main(args):
 
     # Clean Namesd
     data['clean_names'] = ''
+    data['review'] = False
     for i, row in data.iterrows():
         names = row['names']
-        data.loc[i, 'clean_names'] = clean_labeled_names(names)
+        clean_names, review = clean_labeled_names(names)
+        data.loc[i, 'clean_names'] = clean_names
+        data.loc[i, 'review'] = review
 
     # Write out annotated file
     if args.use_civis:
