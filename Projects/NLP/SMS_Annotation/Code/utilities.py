@@ -26,7 +26,7 @@ RELATIONSHIPS = re.compile("\\b(step|grand|ex)?(gardener|student|teacher|client|
 EXCLUDE = re.compile("\\b(more|person|people|high|school|best|college|one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b", re.IGNORECASE)
 EXCLUDE_PRIOR = re.compile("\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b", re.IGNORECASE)
 NEW_LINE_REG = "\\n|\n|\\\\n"
-NAME_SEPARATORS = "\\band\\b|&|\\-|\\/|\\.|,|\\n|\n|\\\\n"
+NAME_SEPARATORS = "\\band\\b|&|\\-|\\/|\\.|,|\\n|\n|\\\\n|\\;"
 NAME_AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b", re.IGNORECASE)
 EXCLUDE_NAMES = re.compile("\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|members|everybody|everyone|trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b", re.IGNORECASE)
 
