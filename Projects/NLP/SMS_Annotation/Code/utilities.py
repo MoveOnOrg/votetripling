@@ -417,7 +417,7 @@ def get_token_features(voterResponse,
                         # not an excluded phrase
                         and not is_exclude[i] \
                         # not proceeded by disqualifying phrase
-                        and re.match(exclude_prior_reg + ' ' + clean_tokens[i], cleaned_string) is None \
+                        and re.match(exclude_prior_reg.pattern + ' ' + clean_tokens[i], cleaned_string) is None \
                         # not a possesive word
                         and not is_possessive[i] \
                         # not in the solicitation message (unless its a known relationship word)
