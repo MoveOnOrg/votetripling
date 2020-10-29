@@ -76,7 +76,8 @@ aggregateMessages <- function(messages,
                               bodyCol = "message_body",
                               phoneCol = "contact_phone",
                               inbound = "incoming",
-                              outbound = "outgoing") {
+                              outbound = "outgoing",
+                              char_limit = 1023) {
   # Clean Direction
   messages[, direction := tolower(eval(as.name(dirCol)))]
   
@@ -98,12 +99,12 @@ aggregateMessages <- function(messages,
                           list(
                             contact_phone = max(eval(as.name(phoneCol))),
                             totalMessages = .N,
-                            tripleMessage = eval(as.name(bodyCol))[messageOrder == 1 ],
-                            voterResponse = paste(eval(as.name(bodyCol))[messageOrderDirRev == 1 & direction == inbound], collapse = "\n"),
-                            tripleResponse = max(eval(as.name(bodyCol))[messageOrderDir == 2 & direction == outbound]),
-                            voterFinal = paste(eval(as.name(bodyCol))[messageOrderDirRev == 2 & direction == inbound], collapse = "\n"),
-                            tripleFinal = max(eval(as.name(bodyCol))[messageOrderDir == 3 & direction == outbound]),
-                            voterPost = paste(eval(as.name(bodyCol))[messageOrderDirRev == 3 & direction == inbound], collapse = "\n")
+                            tripleMessage = substr(eval(as.name(bodyCol))[messageOrder == 1 ], 1, char_limit),
+                            voterResponse = substr(paste(eval(as.name(bodyCol))[messageOrderDirRev == 1 & direction == inbound], collapse = "\n"), 1, char_limit),
+                            tripleResponse = substr(max(eval(as.name(bodyCol))[messageOrderDir == 2 & direction == outbound]), 1, char_limit),
+                            voterFinal = substr(paste(eval(as.name(bodyCol))[messageOrderDirRev == 2 & direction == inbound], collapse = "\n"), 1, char_limit),
+                            tripleFinal = substr(max(eval(as.name(bodyCol))[messageOrderDir == 3 & direction == outbound]), 1, char_limit),
+                            voterPost = substr(paste(eval(as.name(bodyCol))[messageOrderDirRev == 3 & direction == inbound], collapse = "\n"), 1, char_limit)
                           )]
   aggMessages <- aggMessages[totalMessages > 1]
   aggMessages
