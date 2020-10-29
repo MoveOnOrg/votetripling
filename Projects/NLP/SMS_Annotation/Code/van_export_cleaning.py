@@ -125,12 +125,12 @@ def main(args):
             ~(van.manual_review == True) & 
             (van.names_probability > UPPER_BOUND)) |
             (van.names_probability < LOWER_BOUND)
-                        ][['voter_file_vanid', 'names_extract']]
+                        ]
     review = van.loc[(van.names_probability > LOWER_BOUND) &
         (
          (van.manual_review == True) |
          (van.names_probability < UPPER_BOUND)
-         )][['voter_file_vanid', 'contactname', 'notetext', 'names_extract']]
+         )]
     
     # Write out annotated files
     if args.use_civis:
