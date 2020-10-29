@@ -19,13 +19,13 @@ library(data.table)
 #' @param outbound      string representing the code for outbound calls
 aggregateMessages <- function(messages, 
                               triplePhrase = "remind 3 friends",
-                              messageIdCol = "timestamp",
-                              idCol = "conversationid", 
+                              messageIdCol = "messageid",
+                              idCol = "conversationid",
                               dirCol = "messagedirection",
                               bodyCol = "messagebody",
-                              phoneCol = "conversationphone",
-                              inbound = "incoming",
-                              outbound = "outgoing") {
+                              phoneCol = "programid",
+                              inbound = "inbound",
+                              outbound = "outbound") {
   
   # Clean Direction
   messages[, direction := tolower(eval(as.name(dirCol)))]
