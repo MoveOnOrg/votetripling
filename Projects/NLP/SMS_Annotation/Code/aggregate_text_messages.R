@@ -18,12 +18,12 @@ library(data.table)
 #' @param inbound       string representing the code for inbound calls
 #' @param outbound      string representing the code for outbound calls
 aggregateMessages <- function(messages, 
-                              triplePhrase = "remind 3 friends",
-                              messageIdCol = "messageid",
-                              idCol = "conversationid",
-                              dirCol = "messagedirection",
-                              bodyCol = "messagebody",
-                              phoneCol = "programid",
+                              triplePhrase = "",
+                              messageIdCol = "MessageId",
+                              idCol = "ConversationId",
+                              dirCol = "MessageDirection",
+                              bodyCol = "MessageBody",
+                              phoneCol = "EndpointPhoneNumber",
                               inbound = "inbound",
                               outbound = "outbound") {
   
@@ -82,7 +82,7 @@ categorizeBankerResponse <- function(messagesAgg,
                                      negReg = "remove you|apolog|sorry", 
                                      posReg = "^great|^thank you",
                                      affirmReg = "what are the [a-z]+ names",
-                                     finalAffirmReg = "list of candidates|openprogress\\.com|a reminder to vote can make all the difference"
+                                     finalAffirmReg = "ways to vote|how to vote|a reminder to vote can make all the difference"
 ) {
   
   # No response
@@ -112,13 +112,18 @@ categorizeBankerResponse <- function(messagesAgg,
 ##############################
 
 # 3. Put the appropriate file path to the raw text data here <<<
-data <- fread("./Documents/GitHub/votetripling/Projects/NLP/SMS_Annotation/Input_Data/WI_votetripling_unaggregated.csv")
+data <- fread("./Documents/GitHub/votetripling/Projects/NLP/SMS_Annotation/Raw_SMS_Data/pa1_messages_1029.csv")
 
 # Aggregate data
 agg <- aggregateMessages(data)
+
+# Common Responses
+agg[, by = "tripleResponse", .N][order(-N)][1:20]
+agg[grepl("friend", voterResponse), tripleResponse]
+agg[tripleResponse == "", voterResponse]
 
 # Code Responses
 final <- categorizeBankerResponse(agg)
 
 # 4. Put the appropriate output file path here
-fwrite("./Documents/Personal/Voting/Data/testdata_aggregated.csv")
+fwrite(final, "./Documents/Personal/Voting/Data/pa1_messages_1029_aggregated.csv")
