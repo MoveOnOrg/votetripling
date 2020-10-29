@@ -22,7 +22,7 @@ stemmer = SnowballStemmer('english')
 nlp = spacy.load('en')
 AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b", re.IGNORECASE)
 POSSESSIVES = re.compile("\\b(my|his|her|their|our)\\b", re.IGNORECASE)
-RELATIONSHIPS = re.compile("\\b(step|grand|ex)?(gardener|student|teacher|client|patient|doctor|gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)[s]?\\b", re.IGNORECASE)
+RELATIONSHIPS = re.compile("\\b(step|grand|ex)?(gardener|student|teacher|client|patient|doctor|gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)(inlaw)?[s]?\\b", re.IGNORECASE)
 EXCLUDE = re.compile("\\b(more|person|people|high|school|best|college|one|two|three|four|five|six|seven|eight|nine|ten|group|of|votetripling|vote|tripling|your|everybody|everyone|mitch|kamala|joe|biden|member[s]*|trump|eric|tiffany|donald|melania|ivanka|idk|ty|yw|yay|oops|ooops|yes[a-z]+|ah|a|i|ill|o|y|lol|jr|sr|sir|dr|mr|mrs|ms|dr|dude|ditto|tmi|jk|rofl)\\b", re.IGNORECASE)
 EXCLUDE_PRIOR = re.compile("\\b(im|vote for|my name is|this is|who is|this isnt|not|support|volunteer for)\\b", re.IGNORECASE)
 NEW_LINE_REG = "\\n|\n|\\\\n"
@@ -69,7 +69,7 @@ def get_doc(voterResponse):
     voterResponseClean = re.sub("(\w\w+)\'(\w\w+)", "\\1\\2", voterResponseClean)
     voterResponseCamelized = re.sub("([a-z][a-z]+)([A-Z])", "\\1 \\2", voterResponseClean)
     replaceSpecials = re.sub("(co|step)[- ]", "\\1", voterResponseCamelized, flags = re.I)
-    replaceSpecials = re.sub("\\b(in[- ]law)", "inlaw", replaceSpecials, flags = re.I)
+    replaceSpecials = re.sub("\\b(mom|mother|dad|father|daughter|son|brother|sister)[- ]?(in[- ]?law)", "\\1inlaw", replaceSpecials, flags = re.I)
     noParen = re.sub("\\(.*?\\)", "", replaceSpecials)
     responseFinal = re.sub("\\s+", " ", noParen.strip())
     return nlp(responseFinal)
@@ -275,7 +275,14 @@ def present_tokens(clean_tokens,
         good_tokens.append(token)
         
     # Present the tokens
-    return stringify_tokens(good_tokens)
+    final_name_string = stringify_tokens(good_tokens)
+    return present_token_string(final_name_string)
+
+def present_token_string(names_final):
+    final_string = re.sub("\\b(mom|mother|dad|father|daughter|son|brother|sister)inlaw", "\\1-in-law", names_final, flags = re.I)
+    final_string = re.sub("\\binlaw", "in-law", final_string, flags = re.I)
+    final_string = re.sub("\\b(step)", "\\1-", final_string, flags = re.I)
+    return final_string
 
 # Turn a list of tokens into one string
 def stringify_tokens(good_tokens, dedupe = True):
