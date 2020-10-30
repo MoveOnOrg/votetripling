@@ -112,7 +112,7 @@ def clean_labeled_name_string(name_string, affixes = NAME_AFFIXES, possessives =
 
 def present_labeled_name_string(labeled_names_cleaned):
     final_string = re.sub("\\binlaw", "in-law", labeled_names_cleaned)
-    final_string = re.sub("\\b(step)", "\\1-", final_string)
+    final_string = re.sub("\\b(step)(mom|mother|dad|father|daughter|son|brother|sister)", "\\1-\\2", final_string)
     return final_string
 
 def is_email(string):
@@ -281,7 +281,7 @@ def present_tokens(clean_tokens,
 def present_token_string(names_final):
     final_string = re.sub("\\b(mom|mother|dad|father|daughter|son|brother|sister)inlaw", "\\1-in-law", names_final, flags = re.I)
     final_string = re.sub("\\binlaw", "in-law", final_string, flags = re.I)
-    final_string = re.sub("\\b(step)", "\\1-", final_string, flags = re.I)
+    final_string = re.sub("\\b(step)(mom|mother|dad|father|daughter|son|brother|sister)", "\\1-\\2", final_string, flags = re.I)
     return final_string
 
 # Turn a list of tokens into one string
