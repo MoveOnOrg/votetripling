@@ -94,6 +94,12 @@ def main(args):
     data.loc[data.voterresponse.isnull(), 'voterresponse'] = ""
     data.loc[data.voterfinal.isnull(), 'voterfinal'] = ""
     data.loc[data.voterpost.isnull(), 'voterpost'] = ""
+    
+    # Fix Auto Replies
+    auto_reply_reg = "^\\[Auto[- ]?Reply\\]"
+    data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterresponse"] = ""
+    data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterfinal"] = ""
+    data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterpost"] = ""
 
     # Number of tokens in final response
     data['num_tokens_response'] = data.voterresponse.str.count(" ") + ~(data.voterresponse == "")
