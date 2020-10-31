@@ -62,6 +62,9 @@ def normalize_token(token):
     return re.sub("[^a-z]", "", token.lower().strip())
 
 def get_doc(voterResponse):
+    # Eliminate messages which are just a reaction
+    if re.match("(liked|loved).*", voterResponse, flags = re.I):
+        return nlp("")
     voterResponseClean = re.sub(NEW_LINE_REG, " ", voterResponse)
     voterResponseClean = re.sub("\\.", ". ", voterResponseClean)
     voterResponseClean = re.sub(",", ", ", voterResponseClean)
