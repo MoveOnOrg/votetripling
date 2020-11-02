@@ -5,6 +5,7 @@ Created on Sat Sep 19 09:44:24 2020
 
 @author: alutes
 """
+import re
 import argparse
 import pandas as pd
 import numpy as np
@@ -96,10 +97,10 @@ def main(args):
     data.loc[data.voterpost.isnull(), 'voterpost'] = ""
     
     # Fix Auto Replies
-    auto_reply_reg = "^\\[Auto[- ]?Reply\\]"
+    auto_reply_reg = re.compile("(^\\[Auto[- ]?Reply\\])|(Sent from my car)", re.I)
     data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterresponse"] = ""
-    data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterfinal"] = ""
-    data.loc[data.voterresponse.str.contains(auto_reply_reg), "voterpost"] = ""
+    data.loc[data.voterfinal.str.contains(auto_reply_reg), "voterfinal"] = ""
+    data.loc[data.voterpost.str.contains(auto_reply_reg), "voterpost"] = ""
 
     # Number of tokens in final response
     data['num_tokens_response'] = data.voterresponse.str.count(" ") + ~(data.voterresponse == "")
