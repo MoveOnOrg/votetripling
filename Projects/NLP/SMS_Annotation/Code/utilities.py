@@ -29,7 +29,7 @@ NEW_LINE_REG = "\\n|\n|\\\\n"
 NAME_SEPARATORS = "\\band\\b|&|\\-|\\/|\\.|,|\\n|\n|\\\\n|\\;"
 NAME_AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|capt|sir|esq)\\b", re.IGNORECASE)
 EXCLUDE_NAMES = re.compile("\\b(one|two|three|four|five|six|seven|eight|nine|ten|group|members|everybody|everyone|trump|idk|not|given|none|won't|wouldn't|no|names|hasn't|provided|say|na|none|can't)\\b", re.IGNORECASE)
-
+two_letter_names = ['al', 'ed', 'jo', 'bo', 'ty', 'mo', 'em']
 
 ################################
 # Data Loading
@@ -187,7 +187,7 @@ def clean_labeled_names(names, response = None,
                         name = best_match_token
 
                 # For initials, uppercase the whole thing
-                if len(name) < 3 and name.lower() not in ['al', 'ed', 'jo', 'bo', 'ty', 'mo', 'em']:
+                if len(name) < 3 and name.lower() not in two_letter_names:
                     name = name.upper()
                 # For names, capitalize
                 else:
@@ -270,7 +270,7 @@ def present_tokens(clean_tokens,
              token in triple_tokens:
              continue
         # For initials, uppercase the whole thing
-        elif len(token) < 3:
+        elif len(token) < 3 and name.lower() not in two_letter_names:
             token = token.upper()
         # For names, capitalize
         else:
