@@ -160,6 +160,16 @@ def main(args):
             ((data.optout_probability < UPPER_BOUND) & (data.optout_probability > LOWER_BOUND)) |
             (data.manual_review == True)
             )].copy()
+            
+    # Also review cases where we extracted two names and likely missed a third
+    two_name_review = data.loc[
+            (data.name_prob1 > UPPER_BOUND) & 
+            (data.name_prob2 > UPPER_BOUND) & 
+            (data.name_prob3 < LOWER_BOUND) & 
+            (data.name_prob3 > 0) & 
+            (data.num_tokens_final < 5)
+            ].copy()
+    review = pd.concat([review, two_name_review])
     review['is_tripler'] = np.where(review.tripler_probability < MID_BOUND, 'no', 'yes')
     review.loc[review.name_provided_probability < MID_BOUND, 'names_extract'] = ''
     review['opted_out'] = np.where(review.optout_probability < MID_BOUND, 'no', 'yes')
