@@ -131,6 +131,18 @@ def main(args):
          (van.manual_review == True) |
          (van.names_probability < UPPER_BOUND)
          )]
+        
+    # Also review cases where we extracted two names and likely missed a third
+    two_name_review = van.loc[
+            (van.name_prob1 > UPPER_BOUND) & 
+            (van.name_prob2 > UPPER_BOUND) & 
+            (van.name_prob3 < LOWER_BOUND) & 
+            (van.name_prob3 > 0) & 
+            (van.num_tokens < 5) &
+            ~(van.manual_review == True) 
+            ].copy()
+    review = pd.concat([review, two_name_review])
+
     
     # Write out annotated files
     if args.use_civis:
