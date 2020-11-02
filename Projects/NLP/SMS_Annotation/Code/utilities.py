@@ -270,7 +270,7 @@ def present_tokens(clean_tokens,
              token in triple_tokens:
              continue
         # For initials, uppercase the whole thing
-        elif len(token) < 3 and name.lower() not in two_letter_names:
+        elif len(token) < 3 and token.lower() not in two_letter_names:
             token = token.upper()
         # For names, capitalize
         else:
