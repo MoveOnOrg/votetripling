@@ -187,7 +187,7 @@ def clean_labeled_names(names, response = None,
                         name = best_match_token
 
                 # For initials, uppercase the whole thing
-                if len(name) < 3:
+                if len(name) < 3 and name.lower() not in ['al', 'ed', 'jo', 'bo', 'ty', 'mo', 'em']:
                     name = name.upper()
                 # For names, capitalize
                 else:
