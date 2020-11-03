@@ -88,11 +88,12 @@ def main(args):
     # Clean NA values
     van.loc[van.notetext.isnull(), 'notetext'] = ""
     van.loc[van.contactname.isnull(), 'contactname'] = ""
-    
+
     # Aggregate by van id, combine notetext
+    van = van.loc[~(van['notetext'] == "")]
     van['notetext'] = van.groupby(['voter_file_vanid', 'contactname'])['notetext'].transform(lambda x: ','.join(x))
     van = van[['voter_file_vanid', 'contactname', 'notetext']].drop_duplicates()
-    
+
     # Number of tokens
     van['num_tokens'] = van.notetext.str.count(" ") + ~(van.notetext == "") 
 
