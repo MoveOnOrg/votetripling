@@ -11,6 +11,8 @@ This document describes how to use 5 versions of name extraction scripts for vot
   - Levenshtein `pip install python-Levenshtein`
   - NLTK `pip install nltk`
 
+- Alternatively, if you are in an environment where you can't / don't want to install Anaconda, create and activate your Python 3 virtualenv (see [pipenv and virtualenv](https://docs.python-guide.org/dev/virtualenvs/)) and run `pip install -r requirements.txt`
+
 ## Getting Started
 Find your use case below and add your input data to the appropriate place, then run the specified python script.
 All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`  
