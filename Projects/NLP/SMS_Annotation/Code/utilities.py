@@ -19,7 +19,7 @@ from pathlib import Path
 ################################
 
 stemmer = SnowballStemmer('english')
-nlp = spacy.load('en')
+nlp = spacy.load('en_core_web_sm')
 AFFIXES = re.compile("\\b(mr|mrs|ms|dr|jr|sr|your|her|his|our|their|in|you)\\b", re.IGNORECASE)
 POSSESSIVES = re.compile("\\b(my|his|her|their|our)\\b", re.IGNORECASE)
 RELATIONSHIPS = re.compile("\\b(step|grand|ex)?(gardener|student|teacher|client|patient|doctor|gf|cousin|relative|house|kid|aunt|uncle|niece|nephew|partner|boss[a-z]+|sibling|brother|sister|son|daughter|children|child|kid|parent|mom|mother|dad|father|friend|family|cowor[a-z]+|colleague|church|pastor|priest|[a-z]*mate|husband|wife|spouse|fiance[e]*|girlfriend|boyfriend|neighbor|neighborhood|inlaw)(inlaw)?[s]?\\b", re.IGNORECASE)
