@@ -13,6 +13,8 @@ This document describes how to use 5 versions of name extraction scripts for vot
 
 - Alternatively, if you are in an environment where you can't / don't want to install Anaconda, create and activate your Python 3 virtualenv (see [pipenv and virtualenv](https://docs.python-guide.org/dev/virtualenvs/)) and run `pip install -r requirements.txt`
 
+- You'll also need to run `spacy download en` once.
+
 ## Getting Started
 Find your use case below and add your input data to the appropriate place, then run the specified python script.
 All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`  
@@ -84,10 +86,10 @@ This script will output two files:
 Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning.py -d [input_filename]`  
+In this directory, run `python3 Code/name_cleaning.py -i [input_filename]`
 
 **Outputs:**
-A File named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
+A file in `Output_Data` named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
   
   
 ## Text Banker Log Cleaning (utilizing text message conversation)
@@ -128,3 +130,15 @@ This script will output two files:
 - *ContactName* a unique identifier for the conversation
 - *NoteText* free text possibly including names of tripling targets
 - *names_extract* a guess for the extracted names (to be reviewed)
+
+# Running the app frontend
+app.py is a Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them.
+
+Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
+
+To run an instance of the frontend locally:
+`
+export FLASK_APP=app.py
+export FLASK_ENV=development
+flask run
+`
