@@ -5,12 +5,19 @@
         Vote tripling SMS transcript parsing
     </title>
 
+    <link href="https://fonts.googleapis.com/css?family=Droid+Serif|Roboto:500" rel="stylesheet">
     <style>
-        body { width: 96%; padding: 2%; }
-        h1 h2 h3 h4 h5 h6 { font-family: 'sans-serif'; }
-        main { max-width: 800px; width: 100%; margin: auto; }
+        body { width: 100%; font-family: 'Droid Serif', serif; font-size: 16px; background-color: lightblue; }
+        h1,h2,h3,h4,h5,h6 { font-family: 'Roboto', sans-serif !important; }
+        main { max-width: 700px; margin: auto; background-color: #eff; padding: 2em; }
+        a { text-decoration: none; color: royalblue; }
+        a:hover { text-decoration: underline; color: purple; }
+        a:visited { color: rebeccapurple; }
         ul.menu li { list-style-type: none; display: inline-block; margin: 0em .5em 2em 0;}
-        ul.menu li a { padding: .5em; color: darkblue; background-color: #ccc;}
+        ul.menu li a { padding: .5em .9em; color: royalblue; background-color: transparent; font-size: 14px; font-family: 'Roboto', sans-serif; text-transform: uppercase; text-decoration: none; font-weight: bold; letter-spacing: .1em; border-radius: 1em; border: 2px solid royalblue;}
+        ul.menu li a:hover { color: purple; border: 2px solid purple; }
+        input, button { font-size: .9em; height: 2em; }
+        blockquote { display: block;  margin-left: 0; padding: 1em; background-color: rgba(255,255,255,.8); }
     </style>
 </head>
 
@@ -20,46 +27,112 @@
 
         <h1>Vote tripling SMS transcript parsing</h1>
 
-        <ul class="menu"><li><a href="#van_export_cleaning">VAN export cleaning</a></li>
+        <ul class="menu">
+            <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
             <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
+            <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
         </ul>
         
 
+<!--        ## SMS Aggregation
+**Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.
+
+**Inputs:**
+Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.
+
+**Instructions:**
+Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
+
+**Outputs:**
+A file (filename specified by you in the R script) with a single row representing each text message conversation, including the following fields
+- *ConversationId* a unique identifier for the conversation
+- *contact_phone* the phone number of the target
+- *totalMessages* the total number of messages exchanged
+- *tripleMessage* initial message sent from the text banker to the target
+- *voterResponse* initial response(s) by the target (generally where the target makes known if they opt out or want to triple)
+- *tripleResponse* follow up message sent from the text banker to the target
+- *voterFinal* the final follow up message sent by the target (generally where they provide names)
+- *tripleFinal* final follow up sent by text banker
+- *voterPost* post script from the target (generally a thank you or good luck)
+- *noResponse* boolean for whether there was no response
+- *negResponse* boolean for generally negative or discouraging terms (sorry, no, etc.)
+- *posResponse* boolean for generally positive or encouraging terms
+- *affirmResponse* boolean for presence of a scripted affirmation by text banker
+- *finalAffirmResponse* boolean for presence of a scripted follow up affirmation by text banker
+-->
+        <hr />
+        <h2 id="sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</h2>
+        <blockquote>I have SMS conversations and I need to figure out which text recipients volunteered to triple, which chose to opt out, what names they provided, and whether they moved.</blockquote>
+
+        <p>Upload a csv file of the same format as the output of the aggregation in step 1.</p>
+        
+        <form method="post" enctype="multipart/form-data">
+            <input type=file id="sccne_file" name="sccne_file" accept=".csv">
+            <input type=submit value=Upload>
+        </form>
+
+        <p>If successful, the output will include two files:
+        <ul>
+            <li>A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
+            <ul>
+                <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
+                <li><strong>contact_phone:</strong> the phone number of the target</li>
+                <li><strong>is_tripler:</strong> did this person agree to be a tripler ('yes' for everyone in this file)</li>
+                <li><strong>opted_out:</strong> did this person opt out of future messages</li>
+                <li><strong>wrong_number:</strong> did we have the wrong number for this person</li>
+                <li><strong>names_extract:</strong> what names (if any) were provided by this person as tripling targets</li>
+            </ul>
+
+            <li>A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
+            <ul>
+                <li><strong>ConversationId:</strong> a unique identifier for the conversation
+                <li><strong>contact_phone:</strong> the phone number of the target</li>
+                <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
+                <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
+                <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
+                <li><strong>is_tripler:</strong> guess for did this person agree to be a tripler (to be reviewed)</li>
+                <li><strong>opted_out:</strong> guess for did this person opt out of future messages (to be reviewed)</li>
+                <li><strong>wrong_number:</strong> guess for did we have the wrong number for this person (to be reviewed)</li>
+                <li><strong>names_extract:</strong> guess for what names (if any) were provided by this person as tripling targets (to be reviewed)</li>
+            </ul>
+        </ul>
+
         <hr />
 
-        <h3 id='van_export_cleaning'>VAN Export Cleaning</h3>
-         <p><strong>I have a VAN Export and I need to extract any tripling target names from the note text.</strong></p>
+        <h2 id='van_export_cleaning'>VAN Export Cleaning</h2>
+        <blockquote>I have a VAN Export and I need to extract any tripling target names from the note text.</blockquote>
 
-         <p>Upload a csv file with the following columns:</p>
-         <ul>
-        <li>*VANID* a unique ID for this row
-        <li>*ContactName* the name of the tripler
-        <li>*NoteText* free text possibly including names of tripling targets
+        <p>Upload a csv file with the following columns:</p>
+        <ul>
+            <li><strong>VANID:</strong> a unique ID for this row
+            <li><strong>ContactName:</strong> the name of the tripler
+            <li><strong>NoteText:</strong> free text possibly including names of tripling targets
         </ul>
 
         <form method="post" enctype="multipart/form-data">
-            <input type="file" id="vec_file" name="vec_file" accept=".csv">
-            <button>Submit</button>
+            <input type=file id="vec_file" name="vec_file" accept=".csv">
+            <input type=submit value=Upload>
         </form>
 
         <p>If successful, the output will include two files: 
-        <ul><li>1. A file of triplers called `van_cleaned.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
-            <ul><li>- *VANID* a unique identifier for the conversation
-                <li>- *names_extract* the extracted names
+        <ul><li>A file of triplers called `van_cleaned.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
+            <ul><li><strong>VANID:</strong> a unique identifier for the conversation
+                <li><strong>names_extract:</strong> the extracted names
             </ul>
 
-            <li>2. A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
-                <ul><li>- *VANID* a unique identifier for the conversation
-                    <li>- *ContactName* a unique identifier for the conversation
-                    <li>- *NoteText* free text possibly including names of tripling targets
-                    <li>- *names_extract* a guess for the extracted names (to be reviewed)
+            <li>A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
+                <ul><li><strong>VANID:</strong> a unique identifier for the conversation
+                    <li><strong>ContactName:</strong> a unique identifier for the conversation
+                    <li><strong>NoteText:</strong> free text possibly including names of tripling targets
+                    <li><strong>names_extract:</strong> a guess for the extracted names (to be reviewed)
                 </ul>
         </ul>
 
         <hr />
 
-        <h3 id="text_banker_log_cleaning"> Text Banker Log Cleaning (utilizing text message conversation)</h3>
-        <p><strong> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </strong></p>
+        <h2 id="text_banker_log_cleaning">Text Banker Log Cleaning (utilizing text message conversation)</h2>
+
+        <blockquote> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </blockquote>
 
         <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
 
@@ -67,13 +140,15 @@
         This csv file must also contain column 'names' containing the names logged by a text banker.</p>
 
         <form method="post" enctype="multipart/form-data">
-            <input type="file" id="tblc_file" name="tblc_file" accept=".csv">
-            <button>Submit</button>
+            <input type=file id="tblc_file" name="tblc_file" accept=".csv">
+            <input type=submit value=Upload>
         </form>
 
         <p>If successful, output will be a file named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titled "clean_names", along with any other columns in the initial file.</p>
 
         <hr/>
+
+
 
     </main>
 
