@@ -19,6 +19,8 @@ app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# For now, we're going to go ahead and run the script as soon as we get a file upload
+# Ultimately we want to use a queue to make sure we're doing these one at a time.
 def queue_job(type, message):
     return
 
@@ -35,13 +37,14 @@ def delete_file(filename):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # check if the post request has the file part
+        import pdb; pdb.set_trace()
+        # TODO: check to see if a file was submitted at all
         if 'vec_file' not in request.files:
             flash('No file part')
             return redirect(request.url)
+        # TODO: if multiple files are submitted, take the first one
         file = request.files['vec_file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
+        # If selected file is empty / without filename
         if file.filename == '':
             flash('No selected file')
             return redirect(request.url)
@@ -50,6 +53,9 @@ def index():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return redirect(url_for('uploaded_file',
                                     filename=filename))
+        # TODO: check file for required headers
+        # TODO: run script
+        # TODO: return output file
     else: 
         return render_template('upload_form.html')
 
