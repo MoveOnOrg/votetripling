@@ -1,6 +1,8 @@
 from flask import (flash, Flask, g, redirect, render_template, request,
     send_from_directory, url_for)
 from werkzeug.utils import secure_filename
+
+import csv
 import os
 import settings
 import sqlite3
@@ -13,11 +15,21 @@ app.config['UPLOAD_FOLDER'] = os.path.join(APP_ROOT, 'Projects/NLP/SMS_Annotatio
 ALLOWED_EXTENSIONS = settings.ALLOWED_EXTENSIONS
 app.secret_key = settings.SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
-
+REQUIRED_HEADERS = settings.REQUIRED_HEADERS
 
 # check filename extension on uploaded files
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def allowed_file(file):
+    return ('.' in file.filename 
+        and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        and file.content_type == 'text/csv')
+
+def check_headers(file, upload_type = 'vec_file'):
+    # check that the required headers are present in the file
+    headers = file.readline().decode('utf-8').split(',')
+    for header in REQUIRED_HEADERS[upload_type]:
+        if header not in headers:
+            return False
+    return True
 
 # For now, we're going to go ahead and run the script as soon as we get a file upload
 # Ultimately we want to use a queue to make sure we're doing these one at a time.
@@ -37,27 +49,32 @@ def delete_file(filename):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        import pdb; pdb.set_trace()
-        # TODO: check to see if a file was submitted at all
-        if 'vec_file' not in request.files:
-            flash('No file part')
+        # make sure there's a REQUIRED_HEADERS entry for each file upload input
+        if not (REQUIRED_HEADERS.keys() & request.files.keys()):
+            flash('No file', 'error')
             return redirect(request.url)
-        # TODO: if multiple files are submitted, take the first one
-        file = request.files['vec_file']
-        # If selected file is empty / without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
+        # iterate through the different file uploads
+        for upload_type in request.files:
+            file = request.files[upload_type]
+            # If selected file is empty / without filename
+            if file.filename == '':
+                flash('No selected file', 'error')
+                return redirect(request.url)
+            if not (file and allowed_file(file)):
+                flash('Invalid file type. Select a CSV to upload', 'error')
+                return render_template('upload_form.html')
+            if not check_headers(file, 'vec_file'):
+                flash('Invalid CSV headers. Make sure uploaded CSV has required columns.', 'error')
+                return render_template('upload_form.html')
+            # if it passes all the checks, save file and queue for processing
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            # TODO: queue for processing instead of spitting it back
             return redirect(url_for('uploaded_file',
                                     filename=filename))
-        # TODO: check file for required headers
-        # TODO: run script
-        # TODO: return output file
-    else: 
-        return render_template('upload_form.html')
+
+    # GET
+    return render_template('upload_form.html')
 
 # returning uploaded files
 @app.route('/uploads/<filename>')
