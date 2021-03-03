@@ -15,6 +15,18 @@ def get_db():
 
     return g.db
 
+def query_db(query, args=(), one=False, insert=False):
+    import pdb; pdb.set_trace()
+    if insert:
+        conn = get_db()
+        conn.execute(query, args)
+        conn.commit()
+        return True
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
 
 def close_db(e=None):
     db = g.pop('db', None)
@@ -28,6 +40,7 @@ def init_db():
 
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
+
 
 
 @click.command('init-db')

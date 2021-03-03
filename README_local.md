@@ -132,13 +132,21 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them.
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them. It creates and manages a queue within a sqlite3 database (to be upgraded to Redis if performance needs call for it).
 
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
-To run an instance of the frontend locally:
+To run an instance of the frontend locally, from the project root directory initialize the db:
 `
-export FLASK_APP=app.py
+export FLASK_APP=parser
 export FLASK_ENV=development
-flask run
+flask init-db
 `
+That will create a file named `parser.sqlite3` (the application database) in the `instance` directory. Then you should be able to do
+`flask run
+`
+and access the running application at [http://localhost:5000/](http://localhost:5000/)
+
+## Testing the app frontend
+
+`pytest` should run all the tests in the `tests` folder.
