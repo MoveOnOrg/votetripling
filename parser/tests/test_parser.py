@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from . import parser
+import parser
 
 @pytest.fixture
 def client():
@@ -17,3 +17,10 @@ def client():
 
     os.close(db_fd)
     os.unlink(parser.app.config['DATABASE'])
+
+
+# TODO
+
+# test posting wrong file extension to /
+# test posting files with bad headers to /
+# test posting right file with right headers to /

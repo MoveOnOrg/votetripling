@@ -13,7 +13,9 @@
         a { text-decoration: none; color: royalblue; }
         a:hover { text-decoration: underline; color: purple; }
         a:visited { color: rebeccapurple; }
-        ul.flashes li {list-style-type: none; display: inline-block; background-color: red; padding: 1em; color: #eee;}
+        ul.flash li {font-size: 1.3em;}
+        ul.flashes li.error {list-style-type: none; display: inline-block; background-color: red; padding: 1em; color: #eee;}
+        ul.flashes li.info {list-style-type: none; display: inline-block; background-color: darkgreen; padding: 1em; color: #eee;}
         ul.menu li { list-style-type: none; display: inline-block; margin: 0em .5em 2em 0;}
         ul.menu li a { padding: .5em .9em; color: royalblue; background-color: transparent; font-size: 14px; font-family: 'Roboto', sans-serif; text-transform: uppercase; text-decoration: none; font-weight: bold; letter-spacing: .1em; border-radius: 1em; border: 2px solid royalblue;}
         ul.menu li a:hover { color: purple; border: 2px solid purple; }
@@ -28,11 +30,11 @@
 
     <main>
 
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <ul class=flashes>
-        {% for message in messages %}
-          <li>{{ message }}</li>
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
         {% endfor %}
         </ul>
       {% endif %}
@@ -42,8 +44,9 @@
             <h1>Vote tripling SMS transcript parsing</h1>
 
             <ul class="menu">
-                <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
                 <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
+                <li><a href="#text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
+                <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
                 <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
             </ul>
         </div>
@@ -51,50 +54,11 @@
         <div class="upload-enabled">
             <hr />
 
-            <h2 id='van_export_cleaning'>VAN Export Cleaning</h2>
-            <blockquote>I have a VAN Export and I need to extract any tripling target names from the note text.</blockquote>
+            <h2 id="text_banker_log_cleaning">Text Banker Log Cleaning</h2>
 
-            <p>Upload a csv file with the following columns:</p>
-            <ul>
-                <li><strong>VANID:</strong> a unique ID for this row
-                <li><strong>ContactName:</strong> the name of the tripler
-                <li><strong>NoteText:</strong> free text possibly including names of tripling targets
-            </ul>
+            <blockquote> I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.</blockquote>
 
-            <form method="post" enctype="multipart/form-data">
-                <input type=file id="vec_file" name="vec_file" accept=".csv">
-                <input type=submit value=Upload>
-            </form>
-
-            <p>If successful, the output will include two files: 
-            <ul>
-                <li>A file of triplers called `van_cleaned.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
-                <ul>
-                    <li><strong>VANID:</strong> a unique identifier for the conversation</li>
-                    <li><strong>names_extract:</strong> the extracted names</li>
-                </ul>
-
-                <li>A file of conversations for manual review called `van_manual_review.csv`, with the following fields:</li>
-                <ul>
-                    <li><strong>VANID:</strong> a unique identifier for the conversation</li>
-                    <li><strong>ContactName:</strong> a unique identifier for the conversation</li>
-                    <li><strong>NoteText:</strong> free text possibly including names of tripling targets</li>
-                    <li><strong>names_extract:</strong> a guess for the extracted names (to be reviewed)</li>
-                </ul>
-            </ul>
-        </  div>
-
-        <div class="upload-disabled">
-            <hr />
-
-            <h2 id="text_banker_log_cleaning">Text Banker Log Cleaning (utilizing text message conversation)</h2>
-
-            <blockquote> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </blockquote>
-
-            <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
-
-            <p>Upload a csv file of the same format as the output of the aggregation in step 1.
-            This csv file must also contain column 'names' containing the names logged by a text banker.</p>
+            <p>Upload a csv containing a column 'names' containing the names logged by a text banker.</p>
 
             <form method="post" enctype="multipart/form-data">
                 <input type=file id="tblc_file" name="tblc_file" accept=".csv">
@@ -104,7 +68,28 @@
             <p>If successful, output will be a file named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titled "clean_names", along with any other columns in the initial file.</p>
 
         </div>
-        
+
+        <div class="upload-disabled">
+            <hr />
+
+            <h2 id="text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</h2>
+
+            <blockquote> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </blockquote>
+
+            <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
+
+            <p>Upload a csv file of the same format as the output of the aggregation in step 1.
+            This csv file must also contain column 'names' containing the names logged by a text banker.</p>
+
+            <form method="post" enctype="multipart/form-data">
+                <input type=file id="tblc_tmc_file" name="tblc_tmc_file" accept=".csv">
+                <input type=submit value=Upload>
+            </form>
+
+            <p>If successful, output will be a file named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titled "clean_names", along with any other columns in the initial file.</p>
+
+        </div>
+
         <div class="upload-disabled">
             <hr />
             <h2 id="sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</h2>
