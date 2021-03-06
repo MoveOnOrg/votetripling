@@ -15,9 +15,8 @@ def get_db():
 
     return g.db
 
-def query_db(query, args=(), one=False, insert=False):
-    import pdb; pdb.set_trace()
-    if insert:
+def query_db(query, args=(), one=False, write=False):
+    if write:
         conn = get_db()
         conn.execute(query, args)
         conn.commit()
@@ -40,7 +39,6 @@ def init_db():
 
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
-
 
 
 @click.command('init-db')

@@ -12,7 +12,8 @@ def create_app(test_config=None):
         SECRET_KEY=settings.SECRET_KEY,
         DATABASE=os.path.join(app.instance_path, 'parser.sqlite'),
         MAX_CONTENT_LENGTH=settings.MAX_CONTENT_LENGTH,
-        UPLOAD_FOLDER=os.path.join(os.path.dirname(APP_ROOT), settings.UPLOAD_FOLDER)
+        UPLOAD_FOLDER=os.path.join(os.path.dirname(APP_ROOT), settings.UPLOAD_FOLDER),
+        RESULTS_FOLDER=os.path.join(os.path.dirname(APP_ROOT), settings.RESULTS_FOLDER)
     )
 
     from . import db
