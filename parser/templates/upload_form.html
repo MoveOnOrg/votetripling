@@ -17,9 +17,11 @@
         ul.flash li {font-size: 1.3em;}
         ul.flashes li.error {list-style-type: none; display: inline-block; background-color: red; padding: 1em; color: #eee;}
         ul.flashes li.info {list-style-type: none; display: inline-block; background-color: darkgreen; padding: 1em; color: #eee;}
+        ul.flashes li.info a {text-decoration: underline; color: white;}
         ul.menu li { list-style-type: none; display: inline-block; margin: 0em .5em 2em 0;}
         ul.menu li a { padding: .5em .9em; color: royalblue; background-color: transparent; font-size: 14px; font-family: 'Roboto', sans-serif; text-transform: uppercase; text-decoration: none; font-weight: bold; letter-spacing: .1em; border-radius: 1em; border: 2px solid royalblue;}
         ul.menu li a:hover { color: purple; border: 2px solid purple; }
+        ul.menu li a.disabled { opacity: 0.2; }
         input, button { font-size: .9em; height: 2em; }
         blockquote, form { display: block;  margin-left: 0; padding: 1em; color: #444; background-color: rgba(255,255,255,.8); max-width: 90%; }
         div.upload-disabled { opacity: .3; }
@@ -50,9 +52,9 @@
 
             <ul class="menu">
                 <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
-                <li><a href="#text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
-                <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
-                <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
+                <li><a href="#text_banker_log_cleaning_with_conversation" class="disabled">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
+                <li><a href="#van_export_cleaning" class="disabled">VAN export cleaning</a></li>
+                <li><a href="#sms_convo_cat_name_extract" class="disabled">SMS Conversation Categorization and Name Extraction</a></li>
             </ul>
         </div>
 

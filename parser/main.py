@@ -1,12 +1,15 @@
-import functools
 import csv
+import datetime
+import functools
 import os
+import random
 import settings
 import sqlite3
+import string
 import subprocess
 
-from flask import (Blueprint, current_app, flash, Flask, g, redirect,
-    render_template, request, send_from_directory, url_for)
+from flask import (Blueprint, current_app, flash, Flask, g, Markup,
+    redirect, render_template, request, send_from_directory, url_for)
 from . import db
 from werkzeug.utils import secure_filename
 
@@ -54,34 +57,63 @@ def queue_job(file_path, job_type, email):
 
 
 def process_job():
+    """
+        TODO: Replace with a celery queue and workers.
+    """
+
     # if there are any queued jobs, process the oldest one
     query = 'SELECT id, input_file, job_type FROM jobs WHERE status = ? ORDER BY created_at ASC;'
-    jobs = db.query_db(query, ('queued'), one=True)
-    if not jobs:
+    job = db.query_db(query, ('queued',), one=True)
+    if not job:
         print("No jobs to process")
         return False
     job_id = job['id']
     input_file = job['input_file']
     job_type = job['job_type']
     print("Processing job {} file {} type {}".format(job_id, input_file, job_type))
+    
+    status = 'success'
+    processing_query = 'UPDATE jobs SET status = ? WHERE id = ?;'
+    update = db.query_db(processing_query, ('processing', job_id), write=True)
+
+    # It seems silly to run these via the command line but it's for ease of 
+    # maintenance by non-engineers.
+    scripts_folder = current_app.config['SCRIPTS_FOLDER']
+    scripts_home_dir = os.path.dirname(scripts_folder)
+    print('shd', scripts_home_dir)
+    output_file = '{}-{}.csv'.format(''.join(random.SystemRandom().choice(
+        string.ascii_lowercase + string.digits) for _ in range(17)), 
+        datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
     if job_type == 'tblc_file':
-        cmd = 'python ../Projects/NLP/SMS_Annotation/Code/name_cleaning.py'
-        args = '-i {}'.format(input_file)
+        cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
+            scripts_folder, input_file, scripts_home_dir, output_file)
     elif job_type == 'tblc_tmc_file':
-        cmd = 'python ../Projects/NLP/SMS_Annotation/Code/name_cleaning_with_responses.py'
-        args = '-d {}'.format(input_file)
+        cmd = 'python {}/name_cleaning_with_responses.py'.format(scripts_folder)
+        args = ['-d {}'.format(input_file)]
     elif job_type == 'sccne_file':
-        cmd = 'python ../Projects/NLP/SMS_Annotation/Code/annotate_conversations.py'
-        args = '-d {}'.(input_file)
+        cmd = 'python {}/annotate_conversations.py'.format(scripts_folder)
+        args = ['-d {}'.format(input_file)]
     # elif job_type == 'sms_agg_file':
         # this script is to be ported to Python
-    job_run = subprocess.run([cmd, args])
-    # TODO: capture any errors and return whether job was successful
-    # TODO: re-name the results file to a random string
-    # TODO: Update db entry with results file path and status
-    status = 'success'
-
-    return status
+    else:
+        print("Unknown job type {}".format(job_type))
+    print("cmd", cmd)
+    job_run = subprocess.run(cmd, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, shell=True)
+    if job_run.returncode: # exit code of 0 is success, 1 is generic error
+        status = 'error'
+        err_log = job_run.stdout.decode()
+        print("ERROR: Could not process job {} file {} type {}".format(job_id, input_file, job_type))
+        print(err_log)
+    else:
+        print("SUCCESS")
+    result_file = '{}/{}'.format(current_app.config['RESULTS_FOLDER'], 
+        output_file) if status == 'success' else None
+    done_query = 'UPDATE jobs SET status = ?, result_file = ? WHERE id = ?;'
+    update = db.query_db(done_query, (status, result_file, job_id), write=True)
+    if status == 'success':
+        return output_file
+    return False
 
 
 def email_results():
@@ -126,13 +158,24 @@ def index():
             email_name = '{}_email'.format(upload_type.split('_')[0])
             email = request.form[email_name]
             result = queue_job(file_path, upload_type, email)
-            msg = ('Queued file {} for processing as {}. Check your email {} '
-                   'in a few minutes for results.').format(
-                       filename,
-                       UPLOAD_TYPES[upload_type]['name'],
-                       email)
-            flash(queue_message, 'info')
 
+            # This message is currently a lie, we're not really queueing jobs now
+            # except for very briefly.
+            # queue_msg = ('Queued file {} for processing as {}. Check your email {} '
+            #        'in a few minutes for results.').format(
+            #            filename,
+            #            UPLOAD_TYPES[upload_type]['name'],
+            #            email)
+            # queue_msg = ('Processing file {} as {}'.format(
+            #                 filename, UPLOAD_TYPES[upload_type]['name']))
+            # flash(queue_msg, 'info')
+            success = process_job()
+            if success:
+                outcome_msg = Markup(
+                    '<a href="/results/{}">Download results</a>'.format(success))
+            else:
+                outcome_msg = 'Error processing file'
+            flash(outcome_msg, 'info')
             return redirect(request.url)
     # GET
     return render_template('upload_form.html')
