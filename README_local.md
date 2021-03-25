@@ -11,7 +11,7 @@ This document describes how to use 5 versions of name extraction scripts for vot
   - Levenshtein `pip install python-Levenshtein`
   - NLTK `pip install nltk`
 
-- Alternatively, if you are in an environment where you can't / don't want to install Anaconda, create and activate your Python 3 virtualenv (see [pipenv and virtualenv](https://docs.python-guide.org/dev/virtualenvs/)) and run `pip install -r requirements.txt`
+- Alternatively, if you are in an environment where you can't / don't want to install Anaconda, install Python 3.6.9+. Create and activate your Python 3 virtual environment (see [pipenv and virtualenv](https://docs.python-guide.org/dev/virtualenvs/)) and run `pip install -r requirements.txt`
 
 - You'll also need to run `spacy download en` once.
 
@@ -25,7 +25,7 @@ All output data (after running a script) will be found in `Projects/NLP/SMS_Anno
 **Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
   
 **Inputs:**
-Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
+Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.
 
 **Instructions:**
 Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
@@ -90,11 +90,10 @@ In this directory, run `python3 Code/name_cleaning.py -i [input_filename]`
 
 **Outputs:**
 A file in `Output_Data` named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
-  
-  
+
 ## Text Banker Log Cleaning (utilizing text message conversation)
-**Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
-  
+**Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.
+
 **Inputs:**
 Add a csv to the Input_Data folder. 
 This csv file must be of the same format as the output of the aggregation in step 1.
@@ -105,8 +104,7 @@ In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_f
 
 **Outputs:**
 A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
-  
-  
+
 ## VAN Export Cleaning
 **Use Case:** I have a VAN Export and I need to extract any tripling target names from the note text.
 
@@ -117,7 +115,7 @@ Add a csv to the Input_Data folder. This csv file must contain the following col
 - *NoteText* free text possibly including names of tripling targets
 
 **Instructions:**
-In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`  
+In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`
 
 **Outputs:**
 This script will output two files:  
@@ -135,6 +133,8 @@ This script will output two files:
 app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them. It creates and manages a queue within a sqlite3 database (to be upgraded to Redis if performance needs call for it).
 
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
+
+If your (Centos or Redhat Linux) machine's Python3.7 doesn't come with sqlite3, you may have to install sqlite3 with `pip install pysqlite3`, then do `sudo yum install sqlite-devel`, then navigate to the source folder for Python 3.7 (`/usr/src` or something like that) and do `./configure` and then `make altinstall` to recompile Python 3.7 with sqlite3.
 
 To run an instance of the frontend locally, from the project root directory initialize the db:
 `
