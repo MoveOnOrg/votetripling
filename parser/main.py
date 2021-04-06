@@ -81,9 +81,7 @@ def process_job():
     scripts_folder = current_app.config['SCRIPTS_FOLDER']
     scripts_home_dir = os.path.dirname(scripts_folder)
     print('shd', scripts_home_dir)
-    output_file = '{}-{}.csv'.format(''.join(random.SystemRandom().choice(
-        string.ascii_lowercase + string.digits) for _ in range(17)), 
-        datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+    output_file = unique_filename()
     if job_type == 'tblc_file':
         cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
@@ -112,8 +110,8 @@ def process_job():
     done_query = 'UPDATE jobs SET status = ?, result_file = ? WHERE id = ?;'
     update = db.query_db(done_query, (status, result_file, job_id), write=True)
     if status == 'success':
-        return output_file
-    return False
+        return output_file, True
+    return err_log, False
 
 
 def email_results():
@@ -147,12 +145,12 @@ def index():
             if not (file and allowed_file(file)):
                 flash('Invalid file type. Select a CSV to upload', 'error')
                 return redirect(request.url)
-            # if not check_headers(file, upload_type):
-            #     flash('Invalid CSV headers. Check CSV for required columns.', 'error')
-            #     return redirect(request.url)
+            if not check_headers(file, upload_type):
+                flash('Invalid CSV headers. Check CSV for required columns.', 'error')
+                return redirect(request.url)
 
             # if it passes all the checks, save file and queue for processing
-            filename = secure_filename(file.filename)
+            filename = unique_filename()
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
             email_name = '{}_email'.format(upload_type.split('_')[0])
@@ -169,12 +167,13 @@ def index():
             # queue_msg = ('Processing file {} as {}'.format(
             #                 filename, UPLOAD_TYPES[upload_type]['name']))
             # flash(queue_msg, 'info')
-            success = process_job()
+            process, success = process_job()
             if success:
                 outcome_msg = Markup(
-                    '<a href="/results/{}">Download results</a>'.format(success))
+                    '<a href="/results/{}">Download results</a>'.format(process))
             else:
-                outcome_msg = 'Error processing file'
+                outcome_msg = 'Error processing file {}'.format(
+                    process) if os.environ['FLASK_ENV'] == 'development' else 'Error processing file'
             flash(outcome_msg, 'info')
             return redirect(request.url)
     # GET
