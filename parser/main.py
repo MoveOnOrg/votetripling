@@ -41,10 +41,17 @@ def allowed_file(file):
         and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
         and file.content_type == 'text/csv')
 
+def unique_filename():
+    return secure_filename(
+        '{}-{}.csv'.format(
+            ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(17)),
+            datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        )
+    )
 
 def check_headers(file, upload_type):
     headers = file.readline().decode('utf-8').rstrip().split(',')
-    for header in UPLOAD_TYPES['required_headers']:
+    for header in UPLOAD_TYPES[upload_type]['required_headers']:
         if header not in headers:
             return False
     return True
@@ -152,6 +159,7 @@ def index():
             # if it passes all the checks, save file and queue for processing
             filename = unique_filename()
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.seek(0) # return pointer to beginning of file
             file.save(file_path)
             email_name = '{}_email'.format(upload_type.split('_')[0])
             email = request.form[email_name]
