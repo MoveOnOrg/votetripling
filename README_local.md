@@ -110,7 +110,7 @@ A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in
 
 **Inputs:**
 Add a csv to the Input_Data folder. This csv file must contain the following columns:
-- *VANID* a unique ID for this row
+- *voter_file_vanid* a unique ID for this row
 - *ContactName* the name of the tripler
 - *NoteText* free text possibly including names of tripling targets
 

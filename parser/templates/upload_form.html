@@ -26,6 +26,7 @@
         blockquote, form { display: block;  margin-left: 0; padding: 1em; color: #444; background-color: rgba(255,255,255,.8); max-width: 90%; }
         div.upload-disabled { opacity: .3; }
         div.upload-disabled form {display: none;}
+        strong {font-size: 1.1em;}
     </style>
 
     <script type="text/javascript">
@@ -52,8 +53,9 @@
 
             <ul class="menu">
                 <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
+                <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
                 <li><a href="#text_banker_log_cleaning_with_conversation" class="disabled">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
-                <li><a href="#van_export_cleaning" class="disabled">VAN export cleaning</a></li>
+                <li><a href="#sms_agg" class="disabled">SMS Aggregation</a></li>
                 <li><a href="#sms_convo_cat_name_extract" class="disabled">SMS Conversation Categorization and Name Extraction</a></li>
             </ul>
         </div>
@@ -66,7 +68,7 @@
             <blockquote> I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.</blockquote>
 
             <p>First, enter your email address to receive a link to the output file.</p>
-            <p>Then, upload a csv containing a column 'names' containing the names logged by a text banker.</p>
+            <p>Then, upload a csv containing a column <strong>names</strong> containing the names logged by a text banker.</p>
 
             <form method="post" enctype="multipart/form-data">
                 <div>
@@ -80,9 +82,56 @@
                 </div>
             </form>
 
-            <p>If successful, output will be a CSV with the cleaned names in a column titled "clean_names", along with any other columns in the initial file.</p>
+            <p>If successful, output will be a CSV with the cleaned names in a column titled <strong>clean_names</strong>, along with any other columns in the initial file.</p>
 
         </div>
+
+        <div class="upload-enabled">
+            <hr />
+
+            <h2 id="van_export_cleaning">VAN Export Cleaning</h2>
+
+            <blockquote> I have a VAN Export and I need to extract any tripling target names from the note text.</blockquote>
+
+            <p>Upload a csv file containing the following columns:</p>
+            <ul>
+                <li><strong>voter_file_vanid:</strong> a unique ID for this row</li>
+                <li><strong>ContactName:</strong> the name of the tripler</li>
+                <li><strong>NoteText:</strong> free text possibly including names of tripling targets</li>
+            </ul>
+
+            <form method="post" enctype="multipart/form-data">
+                <div>
+                    <label for="tblc_email">Your email:</label>
+                    <input type="email" id="vec_email" name="vec_email" size="30">
+                </div>
+                <div>
+                    <label for="tblc_file">Your CSV:</label>
+                    <input type=file id="vec_file" name="vec_file" accept=".csv">
+                    <input type=submit value=Upload>
+                </div>
+            </form>
+
+            <p>This script will output two files:
+            <ul>
+                <li>A CSV file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+                    <ul>
+                        <li><strong>VANID:</strong> a unique identifier for the conversation</li>
+                        <li><strong>names_extract:</strong> the extracted names</li>
+                    </ul>
+                </li>
+                <li>A CSV file of conversations for manual review, with the following fields:
+                    <ul>
+                        <li><strong>VANID:</strong> a unique identifier for the conversation</li>
+                        <li><strong>ContactName:</strong> a unique identifier for the conversation</li>
+                        <li><strong>NoteText:</strong> free text possibly including names of tripling targets</li>
+                        <li><strong>names_extract:</strong> a guess for the extracted names (to be reviewed)</li>
+                    </ul>
+                </li>
+            </ul>
+
+        </div>
+
 
         <div class="upload-disabled">
             <hr />
@@ -93,15 +142,48 @@
 
             <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
 
-            <p>Upload a csv file of the same format as the output of the aggregation in step 1.
-            This csv file must also contain column 'names' containing the names logged by a text banker.</p>
+            <p>Upload a CSV file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a>.
+            This CSV file must also contain column <strong>names</strong> containing the names logged by a text banker.</p>
 
             <form method="post" enctype="multipart/form-data">
                 <input type=file id="tblc_tmc_file" name="tblc_tmc_file" accept=".csv">
                 <input type=submit value=Upload>
             </form>
 
-            <p>If successful, output will be a file named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titled "clean_names", along with any other columns in the initial file.</p>
+            <p>If successful, output will be a CSV with the cleaned names in a column titled <strong>clean_names</strong>, along with any other columns in the initial file.</p>
+
+        </div>
+
+        <div class="upload-disabled">
+            <hr />
+
+            <h2 id="sms_agg">SMS Aggregation</h2>
+            <blockquote>I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.</blockquote>
+
+            <p>Upload a csv file of raw individual SMS messages, not grouped by conversation.</p>
+
+            <form method="post" enctype="multipart/form-data">
+                <input type=file id="sms_agg_file" name="sms_agg_file" accept=".csv">
+                <input type=submit value=Upload>
+            </form>
+
+            <a name="sms_agg_output"><p>If successful, the output will be a csv file with a single row representing each text message conversation, including the following fields:
+            <ul>
+                <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
+                <li><strong>contact_phone:</strong> the phone number of the target</li>
+                <li><strong>totalMessages:</strong> the total number of messages exchanged</li>
+                <li><strong>tripleMessage:</strong> initial message sent from the text banker to the target</li>
+                <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
+                <li><strong>tripleResponse:</strong> follow up message sent from the text banker to the target</li>
+                <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
+                <li><strong>tripleFinal:</strong> final follow up sent by text banker</li>
+                <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
+                <li><strong>noResponse:</strong> boolean for whether there was no response</li>
+                <li><strong>negResponse:</strong> boolean for generally negative or discouraging terms (sorry, no, etc.)</li>
+                <li><strong>posResponse:</strong> boolean for generally positive or encouraging terms</li>
+                <li><strong>affirmResponse:</strong> boolean for presence of a scripted affirmation by text banker</li>
+                <li><strong>finalAffirmResponse:</strong> boolean for presence of a scripted follow up affirmation by text banker</li>
+            </ul>
 
         </div>
 
@@ -143,40 +225,6 @@
                 </ul>
             </ul>
         </div>
-
-        <div class="upload-disabled">
-            <hr />
-
-            <h2 id="sms_agg">SMS Aggregation</h2>
-            <blockquote>I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.</blockquote>
-
-            <p>Upload a csv file of raw individual SMS messages, not grouped by conversation.</p>
-
-            <form method="post" enctype="multipart/form-data">
-                <input type=file id="sms_agg_file" name="sms_agg_file" accept=".csv">
-                <input type=submit value=Upload>
-            </form>
-
-            <p>If successful, the output will be a csv file with a single row representing each text message conversation, including the following fields:
-            <ul>
-                <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
-                <li><strong>contact_phone:</strong> the phone number of the target</li>
-                <li><strong>totalMessages:</strong> the total number of messages exchanged</li>
-                <li><strong>tripleMessage:</strong> initial message sent from the text banker to the target</li>
-                <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
-                <li><strong>tripleResponse:</strong> follow up message sent from the text banker to the target</li>
-                <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
-                <li><strong>tripleFinal:</strong> final follow up sent by text banker</li>
-                <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
-                <li><strong>noResponse:</strong> boolean for whether there was no response</li>
-                <li><strong>negResponse:</strong> boolean for generally negative or discouraging terms (sorry, no, etc.)</li>
-                <li><strong>posResponse:</strong> boolean for generally positive or encouraging terms</li>
-                <li><strong>affirmResponse:</strong> boolean for presence of a scripted affirmation by text banker</li>
-                <li><strong>finalAffirmResponse:</strong> boolean for presence of a scripted follow up affirmation by text banker</li>
-            </ul>
-
-        </div>
-
 
 
     </main>
