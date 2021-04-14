@@ -7,34 +7,42 @@
 
     <link href="https://fonts.googleapis.com/css?family=Droid+Serif|Roboto:500" rel="stylesheet">
     <style>
-        body { width: 100%; font-family: 'Droid Serif', serif; font-size: 16px; background-color: lightblue; }
-        h1,h2,h3,h4,h5,h6 { font-family: 'Roboto', sans-serif !important; }
+        body { width: 100%; font-family: 'Droid Serif', serif; font-size: 16px; background-color: lightblue; margin: 0; }
+        h1,h2,h3,h4,h5,h6,.loader { font-family: 'Roboto', sans-serif !important; }
         main { max-width: 700px; margin: auto; background-color: #eff; padding: 2em; }
         a { text-decoration: none; color: royalblue; }
         a:hover { text-decoration: underline; color: purple; }
         a:visited { color: rebeccapurple; }
-        form div { padding: .3em; margin: .3em .5em;}
-        ul.flash li {font-size: 1.3em;}
-        ul.flashes li.error {list-style-type: none; display: inline-block; background-color: red; padding: 1em; color: #eee;}
-        ul.flashes li.info {list-style-type: none; display: inline-block; background-color: darkgreen; padding: 1em; color: #eee;}
+        form div { padding: .3em; margin: .3em .5em; }
+        ul.flash li { font-size: 1.3em; }
+        ul.flashes li.error { list-style-type: none; display: inline-block; background-color: red; padding: 1em; color: #eee; }
+        ul.flashes li.info { list-style-type: none; display: inline-block; background-color: darkgreen; padding: 1em; color: #eee; }
         ul.flashes li.info a {text-decoration: underline; color: white;}
-        ul.menu li { list-style-type: none; display: inline-block; margin: 0em .5em 2em 0;}
-        ul.menu li a { padding: .5em .9em; color: royalblue; background-color: transparent; font-size: 14px; font-family: 'Roboto', sans-serif; text-transform: uppercase; text-decoration: none; font-weight: bold; letter-spacing: .1em; border-radius: 1em; border: 2px solid royalblue;}
+        ul.menu li { list-style-type: none; display: inline-block; margin: 0em .5em 2em 0; }
+        ul.menu li a { padding: .5em .9em; color: royalblue; background-color: transparent; font-size: 14px; font-family: 'Roboto', sans-serif; text-transform: uppercase; text-decoration: none; font-weight: bold; letter-spacing: .1em; border-radius: 1em; border: 2px solid royalblue; }
         ul.menu li a:hover { color: purple; border: 2px solid purple; }
         ul.menu li a.disabled { opacity: 0.2; }
         input, button { font-size: .9em; height: 2em; }
         blockquote, form { display: block;  margin-left: 0; padding: 1em; color: #444; background-color: rgba(255,255,255,.8); max-width: 90%; }
-        div.upload-disabled { opacity: .3; }
-        div.upload-disabled form {display: none;}
-        strong {font-size: 1.1em;}
+        div.upload-disabled { opacity: .3;}
+        div.upload-disabled form { display: none; }
+        strong { font-size: 1.1em; }
+        #loader { position: fixed; height: 30px; top: 0px; background-color: gold; width: 100%; padding: 1em; text-align: center; font-size: 1.3em; color: black; transform: translate3d(0,0,0); opacity: .8; display: none;}
+        .spinner { border: 6px solid #f3f3f3; border-top: 6px solid green; border-radius: 50%; width: 20px; height: 20px; animation: spin 2s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader span { position: relative; top: -8px; left: 1em;}
+
     </style>
 
-    <script type="text/javascript">
-        // TODO: validation JS for forms
-    </script>
 </head>
 
 <body>
+
+    <div id="loader">
+        <div class="spinner">
+        </div>
+        <span>Processing ...</span>
+    </div>
 
     <main>
 
@@ -70,15 +78,15 @@
             <p>First, enter your email address to receive a link to the output file.</p>
             <p>Then, upload a csv containing a column <strong>names</strong> containing the names logged by a text banker.</p>
 
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" onsubmit="revealLoader();">
                 <div>
                     <label for="tblc_email">Your email:</label>
-                    <input type="email" id="tblc_email" name="tblc_email" size="30">
+                    <input type="email" id="tblc_email" name="tblc_email" size="30"/>
                 </div>
                 <div>
                     <label for="tblc_file">Your CSV:</label>
-                    <input type="file" id="tblc_file" name="tblc_file" accept=".csv">
-                    <input type=submit value=Upload>
+                    <input type="file" id="tblc_file" name="tblc_file" accept=".csv"/>
+                    <input type="submit" value="Upload" />
                 </div>
             </form>
 
@@ -103,12 +111,12 @@
             <form method="post" enctype="multipart/form-data">
                 <div>
                     <label for="tblc_email">Your email:</label>
-                    <input type="email" id="vec_email" name="vec_email" size="30">
+                    <input type="email" id="vec_email" name="vec_email" size="30"/>
                 </div>
                 <div>
                     <label for="tblc_file">Your CSV:</label>
-                    <input type=file id="vec_file" name="vec_file" accept=".csv">
-                    <input type=submit value=Upload>
+                    <input type="file" id="vec_file" name="vec_file" accept=".csv"/>
+                    <input type="submit" value="Upload"/>
                 </div>
             </form>
 
@@ -228,6 +236,19 @@
 
 
     </main>
+
+    <script type="text/javascript">
+      // TODO: validation JS for forms
+      // TODO: reveal loader
+      function revealLoader() {
+        l = document.getElementById('loader');
+        if (l.style.display === "none") {
+          l.style.display = "block";
+        } else {
+          l.style.display = "none";
+        }
+      }
+    </script>
 
 </body>
 
