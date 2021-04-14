@@ -21,15 +21,21 @@ UPLOAD_TYPES = {
         'name': 'Text Banker Log Cleaning',
         'required_headers': ['names']
     },
-    'tblc_tmc_file': {
+    'tblctmc_file': {
         'name': 'Text Banker Log Cleaning (utilizing text message conversation)',
-        'required_headers': ['names']
+        'required_headers': ['names', 'triplemessage', 'voterresponse',
+            'voterfinal', 'voterpost'
+        ]
     },
     'sccne_file': {
         'name': 'SMS Conversation Categorization and Name Extraction',
-        'required_headers': []
+        'required_headers': ['noresponse', 'negresponse', 'posresponse',
+            'affirmresponse', 'finalaffirmresponse', 'triplemessage',
+            'voterresponse','voterfinal', 'voterpost', 'conversationid',
+            'contact_phone'
+        ]
     },
-    'sms_agg_file': {
+    'smsagg_file': {
         'name': 'SMS Aggregation',
         'required_headers': []
     },
@@ -103,12 +109,12 @@ def process_job():
     elif job_type == 'vec_file':
         cmd = 'python {}/van_export_cleaning.py -i {} -f {} -o {} -m {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file, second_output_file)
-    # elif job_type == 'tblc_tmc_file':
-    #     cmd = 'python {}/name_cleaning_with_responses.py'.format(scripts_folder)
-    #     args = ['-d {}'.format(input_file)]
-    # elif job_type == 'sccne_file':
-    #     cmd = 'python {}/annotate_conversations.py'.format(scripts_folder)
-    #     args = ['-d {}'.format(input_file)]
+    elif job_type == 'tblc_tmc_file':
+        cmd = 'python {}/name_cleaning_with_responses.py -i {} -f {} -o {}'.format(
+            scripts_folder, input_file, scripts_home_dir, output_file)
+    elif job_type == 'sccne_file':
+        cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {}'.format(
+            scripts_folder, input_file, scripts_home_dir, output_file)
     # elif job_type == 'sms_agg_file':
         # this script is to be ported to Python
     else:

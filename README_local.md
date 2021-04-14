@@ -49,16 +49,16 @@ A file (filename specified by you in the R script) with a single row representin
   
   
 ## SMS Conversation Categorization and Name Extraction
-**Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
-  
+**Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.
+
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.   
+Add a CSV to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.
 
 **Instructions:**
-In this directory, run `python3 Code/annotate_conversations.py -d [input_filename]`. 
+In this directory, run `python3 Code/annotate_conversations.py -i [input_filename]`.
 
 **Outputs:**
-This script will output two files:  
+This script will output two files:
 1. A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
@@ -78,12 +78,12 @@ This script will output two files:
 - *wrong_number* guess for did we have the wrong number for this person (to be reviewed)
 - *names_extract* guess for what names (if any) were provided by this person as tripling targets (to be reviewed)
 
-  
+
 ## Text Banker Log Cleaning
-**Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
-  
+**Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.
+
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
+Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker
 
 **Instructions:**
 In this directory, run `python3 Code/name_cleaning.py -i [input_filename]`
@@ -100,7 +100,7 @@ This csv file must be of the same format as the output of the aggregation in ste
 This csv file must also contain column 'names' containing the names logged by a text banker.
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_filename]`
+In this directory, run `python3 Code/name_cleaning_with_responses.py -i [input_filename]`
 
 **Outputs:**
 A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file

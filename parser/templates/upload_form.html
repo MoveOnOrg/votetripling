@@ -61,10 +61,10 @@
 
             <ul class="menu">
                 <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
+                <li><a href="#text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
                 <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
-                <li><a href="#text_banker_log_cleaning_with_conversation" class="disabled">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
                 <li><a href="#sms_agg" class="disabled">SMS Aggregation</a></li>
-                <li><a href="#sms_convo_cat_name_extract" class="disabled">SMS Conversation Categorization and Name Extraction</a></li>
+                <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
             </ul>
         </div>
 
@@ -78,7 +78,7 @@
             <p>First, enter your email address to receive a link to the output file.</p>
             <p>Then, upload a csv containing a column <strong>names</strong> containing the names logged by a text banker.</p>
 
-            <form method="post" enctype="multipart/form-data" onsubmit="revealLoader();">
+            <form method="post" enctype="multipart/form-data">
                 <div>
                     <label for="tblc_email">Your email:</label>
                     <input type="email" id="tblc_email" name="tblc_email" size="30"/>
@@ -88,6 +88,34 @@
                     <input type="file" id="tblc_file" name="tblc_file" accept=".csv"/>
                     <input type="submit" value="Upload" />
                 </div>
+            </form>
+
+            <p>If successful, output will be a CSV with the cleaned names in a column titled <strong>clean_names</strong>, along with any other columns in the initial file.</p>
+
+        </div>
+
+        <div class="upload-enabled">
+            <hr />
+
+            <h2 id="text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</h2>
+
+            <blockquote> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </blockquote>
+
+            <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
+
+            <p>Upload a CSV file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a>.This CSV file must also contain a column <strong>names</strong> containing the names logged by a text banker. You can join the text banker logs to the aggregation output using the conversation ID.</p>
+
+            <form method="post" enctype="multipart/form-data">
+                <div>
+                    <label for="tblctmc_email">Your email:</label>
+                    <input type="email" id="tblctmc_email" name="tblctmc_email" size="30"/>
+                </div>
+                <div>
+                    <label for="tblctmc_file">Your CSV:</label>
+                    <input type="file" id="tblctmc_file" name="tblctmc_file" accept=".csv" />
+                    <input type="submit" value="Upload" />
+                </div>
+
             </form>
 
             <p>If successful, output will be a CSV with the cleaned names in a column titled <strong>clean_names</strong>, along with any other columns in the initial file.</p>
@@ -110,11 +138,11 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="tblc_email">Your email:</label>
+                    <label for="vec_email">Your email:</label>
                     <input type="email" id="vec_email" name="vec_email" size="30"/>
                 </div>
                 <div>
-                    <label for="tblc_file">Your CSV:</label>
+                    <label for="vec_file">Your CSV:</label>
                     <input type="file" id="vec_file" name="vec_file" accept=".csv"/>
                     <input type="submit" value="Upload"/>
                 </div>
@@ -140,28 +168,6 @@
 
         </div>
 
-
-        <div class="upload-disabled">
-            <hr />
-
-            <h2 id="text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</h2>
-
-            <blockquote> I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. </blockquote>
-
-            <p>We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.</p>
-
-            <p>Upload a CSV file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a>.
-            This CSV file must also contain column <strong>names</strong> containing the names logged by a text banker.</p>
-
-            <form method="post" enctype="multipart/form-data">
-                <input type=file id="tblc_tmc_file" name="tblc_tmc_file" accept=".csv">
-                <input type=submit value=Upload>
-            </form>
-
-            <p>If successful, output will be a CSV with the cleaned names in a column titled <strong>clean_names</strong>, along with any other columns in the initial file.</p>
-
-        </div>
-
         <div class="upload-disabled">
             <hr />
 
@@ -171,11 +177,18 @@
             <p>Upload a csv file of raw individual SMS messages, not grouped by conversation.</p>
 
             <form method="post" enctype="multipart/form-data">
-                <input type=file id="sms_agg_file" name="sms_agg_file" accept=".csv">
-                <input type=submit value=Upload>
+                <div>
+                    <label for="smsagg_email">Your email:</label>
+                    <input type="email" id="smsagg_email" name="smsagg_email" size="30"/>
+                </div>
+                <div>
+                    <label for="smsagg_file">Your CSV:</label>
+                    <input type="file" id="smsagg_file" name="smsagg_file" accept=".csv" />
+                    <input type="submit" value="Upload" />
+                </div>
             </form>
 
-            <a name="sms_agg_output"><p>If successful, the output will be a csv file with a single row representing each text message conversation, including the following fields:
+            <p id="sms_agg_output">If successful, the output will be a CSV with a single row representing each text message conversation, including the following fields:
             <ul>
                 <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
                 <li><strong>contact_phone:</strong> the phone number of the target</li>
@@ -195,21 +208,28 @@
 
         </div>
 
-        <div class="upload-disabled">
+        <div class="upload-enabled">
             <hr />
             <h2 id="sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</h2>
             <blockquote>I have SMS conversations and I need to figure out which text recipients volunteered to triple, which chose to opt out, what names they provided, and whether they moved.</blockquote>
 
-            <p>Upload a csv file of the same format as the output of the aggregation in step 1.</p>
+            <p>Upload a csv file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a></p>
             
             <form method="post" enctype="multipart/form-data">
-                <input type=file id="sccne_file" name="sccne_file" accept=".csv">
-                <input type=submit value=Upload>
+                <div>
+                    <label for="sccne_email">Your email:</label>
+                    <input type="email" id="sccne_email" name="sccne_email" size="30"/>
+                </div>
+                <div>
+                    <label for="sccne_file">Your CSV:</label>
+                    <input type=file id="sccne_file" name="sccne_file" accept=".csv">
+                    <input type="submit" value="Upload"/>
+                </div>
             </form>
 
             <p>If successful, the output will include two files:
             <ul>
-                <li>A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
+                <li>A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
                 <ul>
                     <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
                     <li><strong>contact_phone:</strong> the phone number of the target</li>
@@ -219,7 +239,7 @@
                     <li><strong>names_extract:</strong> what names (if any) were provided by this person as tripling targets</li>
                 </ul>
 
-                <li>A file of conversations for manual review called `van_manual_review.csv`, with the following fields:
+                <li>A file of conversations for manual review, with the following fields:
                 <ul>
                     <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
                     <li><strong>contact_phone:</strong> the phone number of the target</li>
