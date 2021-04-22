@@ -130,7 +130,7 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them. 
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. It uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications with the results in the background.
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
 You'll need to install Redis. On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
@@ -146,11 +146,16 @@ That will create a file named `parser.sqlite3` (the application database) in the
 `
 and access the running application at [http://localhost:5000/](http://localhost:5000/)
 
-## Configuring and testing email sending
+## Configuring email
 
 Email config variables in the example config file assume you are using Gmail for testing. Two important notes:
 * Gmail probably isn't adequate for production scale; you can only send about 100 emails a day.
 * Gmail doesn't consider any apps that send mail using SMTP protocol secure. When you try and run the app with a Gmail account you'll get security warnings on that account unless you have enabled what Google calls ["Less Secure Apps"](https://support.google.com/accounts/answer/6010255?hl=en).
+
+## Background tasks
+
+* `celery -A celery_worker.celery worker --loglevel=info` will spin up a celery worker for you in a local dev environment.
+* Run redis in a different terminal window with `redis-server`.
 
 ## Testing the app frontend
 

@@ -2,11 +2,12 @@
 *.csv
 *.xlsx
 settings.py
-
-instance/
+config.py
 
 __pycache__
 *.pyc
+*.rdb
+*.sqlite
 
 .pytest_cache/
 .coverage
