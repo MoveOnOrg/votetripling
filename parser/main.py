@@ -10,7 +10,7 @@ import subprocess
 
 from flask import (Blueprint, current_app, flash, Flask, g, Markup,
     redirect, render_template, request, send_from_directory, url_for)
-from . import db
+import db
 from werkzeug.utils import secure_filename
 
 bp = Blueprint('main', __name__, url_prefix='')

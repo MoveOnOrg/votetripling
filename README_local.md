@@ -130,11 +130,10 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them. It creates and manages a queue within a sqlite3 database (to be upgraded to Redis if performance needs call for it).
-
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and running the scripts with them. 
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
-If your (Centos or Redhat Linux) machine's Python3.7 doesn't come with sqlite3, you may have to install sqlite3 with `pip install pysqlite3`, then do `sudo yum install sqlite-devel`, then navigate to the source folder for Python 3.7 (`/usr/src` or something like that) and do `./configure` and then `make altinstall` to recompile Python 3.7 with sqlite3.
+You'll need to install Redis. On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
 
 To run an instance of the frontend locally, from the project root directory initialize the db:
 `
@@ -146,6 +145,12 @@ That will create a file named `parser.sqlite3` (the application database) in the
 `flask run
 `
 and access the running application at [http://localhost:5000/](http://localhost:5000/)
+
+## Configuring and testing email sending
+
+Email config variables in the example config file assume you are using Gmail for testing. Two important notes:
+* Gmail probably isn't adequate for production scale; you can only send about 100 emails a day.
+* Gmail doesn't consider any apps that send mail using SMTP protocol secure. When you try and run the app with a Gmail account you'll get security warnings on that account unless you have enabled what Google calls ["Less Secure Apps"](https://support.google.com/accounts/answer/6010255?hl=en).
 
 ## Testing the app frontend
 
