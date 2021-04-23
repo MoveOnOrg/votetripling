@@ -3,7 +3,6 @@ import datetime
 import functools
 import os
 import random
-import settings
 import sqlite3
 import string
 import subprocess
