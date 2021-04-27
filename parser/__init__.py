@@ -1,3 +1,5 @@
+# because this code gets run from several different places, update PATH
+# so we can find modules from wherever we run things
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -16,7 +18,7 @@ def create_app(test_config=None):
     app.instance_path = (os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance')) # maybe setting this manually fixes the config problem in blueprint celery tasks
     app.config.from_mapping(
             SECRET_KEY='dev',
-            DATABASE=os.path.join(app.instance_path, 'parser.sqlite'),
+            DATABASE=os.path.join(app.instance_path, 'parser.sqlite')
         )
     test_config = None
     if test_config is None:

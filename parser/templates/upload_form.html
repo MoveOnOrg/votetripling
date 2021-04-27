@@ -168,13 +168,20 @@
 
         </div>
 
-        <div class="upload-disabled">
+        <div class="upload-enabled">
             <hr />
 
             <h2 id="sms_agg">SMS Aggregation</h2>
             <blockquote>I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.</blockquote>
 
-            <p>Upload a csv file of raw individual SMS messages, not grouped by conversation.</p>
+            <p>Upload a csv file of raw individual SMS messages. The csv should contain the following columns:</p>
+            <ul>
+                <li><strong>MessageId:</strong> Message timestamp OR an ascending unique ID for the message, used to determine message order</li>
+                <li><strong>ConversationId:</strong> unique ID for each conversation</li>
+                <li><strong>MessageDirection:</strong> direction ("inbound" or "outbound") of each message</li>
+                <li><strong>MessageBody:</strong> the body/content of the message</li>
+                <li><strong>EndpointPhoneNumber:</strong> phone number or any other unique identifier for the recipient</li>
+            </ul>
 
             <form method="post" enctype="multipart/form-data">
                 <div>

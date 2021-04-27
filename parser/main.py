@@ -7,9 +7,14 @@ import sqlite3
 import string
 import subprocess
 
+import config
+import db
+
+from __init__ import celery
 from flask import (Blueprint, current_app, flash, Flask, g, Markup,
     redirect, render_template, request, send_from_directory, url_for)
-import db
+from flask_mail import Mail, Message
+
 from werkzeug.utils import secure_filename
 
 bp = Blueprint('main', __name__, url_prefix='')
@@ -102,22 +107,25 @@ def process_job():
     if job_type == 'vec_file':
         second_output_file = unique_filename()
 
+    cmd = None
     if job_type == 'tblc_file':
         cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
     elif job_type == 'vec_file':
         cmd = 'python {}/van_export_cleaning.py -i {} -f {} -o {} -m {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file, second_output_file)
-    elif job_type == 'tblc_tmc_file':
+    elif job_type == 'tblctmc_file':
         cmd = 'python {}/name_cleaning_with_responses.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
     elif job_type == 'sccne_file':
         cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
-    # elif job_type == 'sms_agg_file':
-        # this script is to be ported to Python
+    elif job_type == 'smsagg_file':
+        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{}'.format(
+            scripts_folder, input_file, current_app.config['RESULTS_FOLDER'], output_file)
     else:
-        print("Unknown job type {}".format(job_type))
+        err_log = "Unknown job type {}".format(job_type)
+        return False, err_log, None
     print("cmd", cmd)
     job_run = subprocess.run(cmd, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, shell=True)

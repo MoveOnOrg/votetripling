@@ -20,3 +20,5 @@ MAIL_PASSWORD = 'password1234'
 EMAIL_SENDER = 'Votetripling SMS Transcript Processing, notarealemail@gmail.com'
 EMAIL_SUBJECT = 'SMS transcript processing'
 TEST_TARGET_EMAIL = 'your.email@example.com'
+
+FILE_LIFE = 72 # no. of hrs we let uploaded and result files hang out on the server
