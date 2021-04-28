@@ -131,7 +131,7 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. If config.PROCESS_ASYNC is set to True, it uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications with the results in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously from a queue/log stored in a SQLite database.
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. If config.PROCESS_ASYNC is set to True, it uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously and the app waits to deliver the results as linked files.
 
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
@@ -139,15 +139,12 @@ You'll need to install Redis. On OSX, install homebrew and then `brew install re
 
 Copy config.py from `instance/config.py.example` file and fill it in.
 
-To run an instance of the frontend locally, from the project root directory initialize the db:
-`
+To run an instance of the frontend locally, from the project root directory run:
+```
 export FLASK_APP=parser
 export FLASK_ENV=development
-flask init-db
-`
-That will create a file named `parser.sqlite3` (the application database) in the `instance` directory. Then you should be able to do
-`flask run
-`
+flask run
+```
 and access the running application at [http://localhost:5000/](http://localhost:5000/)
 
 ## Configuring email
