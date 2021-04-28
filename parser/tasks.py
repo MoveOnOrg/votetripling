@@ -24,8 +24,11 @@ def process_job_async(data):
     scripts_home_dir = os.path.dirname(scripts_folder)
     output_file = unique_filename()
     second_output_file = None
-    if upload_type == 'vec_file':
+    third_output_file = None
+    if job_type in ['vec_file','sccne_file']:
         second_output_file = unique_filename()
+        if job_type == 'sccne_file':
+            third_output_file = unique_filename()
 
     if upload_type == 'tblc_file':
         cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
@@ -37,8 +40,9 @@ def process_job_async(data):
         cmd = 'python {}/name_cleaning_with_responses.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
     elif upload_type == 'sccne_file':
-        cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {}'.format(
-            scripts_folder, input_file, scripts_home_dir, output_file)
+        cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {} -n {} -m {}'.format(
+            scripts_folder, input_file, scripts_home_dir, output_file,
+            second_output_file, third_output_file)
     elif upload_type == 'smsagg_file':
         cmd = 'python {}/aggregate_text_messages.py -d {} -o {}'.format(
             scripts_folder, input_file, output_file)

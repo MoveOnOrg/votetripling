@@ -58,7 +58,7 @@ Add a CSV to the Input_Data folder. This csv file must be of the same format as 
 In this directory, run `python3 Code/annotate_conversations.py -i [input_filename]`.
 
 **Outputs:**
-This script will output two files:
+This script will output three files:
 1. A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
@@ -78,6 +78,7 @@ This script will output two files:
 - *wrong_number* guess for did we have the wrong number for this person (to be reviewed)
 - *names_extract* guess for what names (if any) were provided by this person as tripling targets (to be reviewed)
 
+3. A file of opt-outs
 
 ## Text Banker Log Cleaning
 **Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.
@@ -130,10 +131,13 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. It uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications with the results in the background.
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. If config.PROCESS_ASYNC is set to True, it uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications with the results in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously from a queue/log stored in a SQLite database.
+
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
 You'll need to install Redis. On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
+
+Copy config.py from `instance/config.py.example` file and fill it in.
 
 To run an instance of the frontend locally, from the project root directory initialize the db:
 `

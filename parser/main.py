@@ -104,9 +104,11 @@ def process_job():
     print('shd', scripts_home_dir)
     output_file = unique_filename()
     second_output_file = None
-    if job_type == 'vec_file':
+    third_output_file = None
+    if job_type in ['vec_file','sccne_file']:
         second_output_file = unique_filename()
-
+        if job_type == 'sccne_file':
+            third_output_file = unique_filename()
     cmd = None
     if job_type == 'tblc_file':
         cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
@@ -118,8 +120,9 @@ def process_job():
         cmd = 'python {}/name_cleaning_with_responses.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
     elif job_type == 'sccne_file':
-        cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {}'.format(
-            scripts_folder, input_file, scripts_home_dir, output_file)
+        cmd = 'python {}/annotate_conversations.py -i {} -f {} -o {} -n {} -m {}'.format(
+            scripts_folder, input_file, scripts_home_dir, output_file, second_output_file,
+            third_output_file)
     elif job_type == 'smsagg_file':
         cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{}'.format(
             scripts_folder, input_file, current_app.config['RESULTS_FOLDER'], output_file)
@@ -140,13 +143,16 @@ def process_job():
     if status == 'success':
         result_file = '{}/{}'.format(current_app.config['RESULTS_FOLDER'], output_file)
         if second_output_file:
-            result_file == '{0}/{1}|{0}/{2}'.format(
+            result_file = '{0}/{1}|{0}/{2}'.format(
                 current_app.config['RESULTS_FOLDER'], output_file, second_output_file)
+        if third_output_file:
+            result_file = '{0}/{1}|{0}/{2}|{0}/{3}'.format(
+                current_app.config['RESULTS_FOLDER'], output_file, second_output_file, third_output_file)
     done_query = 'UPDATE jobs SET status = ?, result_file = ? WHERE id = ?;'
     update = db.query_db(done_query, (status, result_file, job_id), write=True)
     if status == 'success':
-        return True, output_file, second_output_file
-    return False, err_log, None
+        return True, output_file, second_output_file, third_output_file
+    return False, err_log, None, None
 
 
 def email_results():
@@ -204,15 +210,16 @@ def index():
             # queue_msg = ('Processing file {} as {}'.format(
             #                 filename, UPLOAD_TYPES[upload_type]['name']))
             # flash(queue_msg, 'info')
-            success, output, second_output = process_job()
+            success, output, second_output, third_output = process_job()
+            output_files = [output, second_output, third_output]
             if success:
                 outcome_msg = Markup(
                     '<a href="/results/{}">Download results</a>'.format(output))
                 if second_output:
+                    result_links = ['<a href="/results/{}">file {}</a>'.format(
+                        x, output_files.index(x) + 1) for x in output_files]
                     outcome_msg = Markup(
-                        'Download <a href="/results/{}">result file 1</a>'
-                        ' and <a href="/results/{}">result file 2</a>').format(
-                            output, second_output)
+                        'Download results:  {}'.format('  '.join(result_links)))
             else:
                 outcome_msg = 'Error processing file {}'.format(
                     output) if os.environ['FLASK_ENV'] == 'development' else 'Error processing file'

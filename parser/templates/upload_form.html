@@ -60,13 +60,114 @@
             <h1>Vote tripling SMS transcript parsing</h1>
 
             <ul class="menu">
+                <li><a href="#sms_agg">SMS Aggregation</a></li>
+                <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
                 <li><a href="#text_banker_log_cleaning">Text banker log cleaning</a></li>
                 <li><a href="#text_banker_log_cleaning_with_conversation">Text Banker Log Cleaning (utilizing text message conversation)</a></li>
                 <li><a href="#van_export_cleaning">VAN export cleaning</a></li>
-                <li><a href="#sms_agg" class="disabled">SMS Aggregation</a></li>
-                <li><a href="#sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</a></li>
             </ul>
         </div>
+
+        <div class="upload-enabled">
+            <hr />
+
+            <h2 id="sms_agg">SMS Aggregation</h2>
+            <blockquote>I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.</blockquote>
+
+            <p>Upload a csv file of raw individual SMS messages. The csv should contain the following columns:</p>
+            <ul>
+                <li><strong>MessageId:</strong> Message timestamp OR an ascending unique ID for the message, used to determine message order</li>
+                <li><strong>ConversationId:</strong> unique ID for each conversation</li>
+                <li><strong>MessageDirection:</strong> direction ("inbound" or "outbound") of each message</li>
+                <li><strong>MessageBody:</strong> the body/content of the message</li>
+                <li><strong>EndpointPhoneNumber:</strong> phone number or any other unique identifier for the recipient</li>
+            </ul>
+
+            <form method="post" enctype="multipart/form-data">
+                <div>
+                    <label for="smsagg_email">Your email:</label>
+                    <input type="email" id="smsagg_email" name="smsagg_email" size="30"/>
+                </div>
+                <div>
+                    <label for="smsagg_file">Your CSV:</label>
+                    <input type="file" id="smsagg_file" name="smsagg_file" accept=".csv" />
+                    <input type="submit" value="Upload" />
+                </div>
+            </form>
+
+            <p id="sms_agg_output">If successful, the output will be a CSV with a single row representing each text message conversation, including the following fields:
+            <ul>
+                <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
+                <li><strong>contact_phone:</strong> the phone number of the target</li>
+                <li><strong>totalMessages:</strong> the total number of messages exchanged</li>
+                <li><strong>tripleMessage:</strong> initial message sent from the text banker to the target</li>
+                <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
+                <li><strong>tripleResponse:</strong> follow up message sent from the text banker to the target</li>
+                <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
+                <li><strong>tripleFinal:</strong> final follow up sent by text banker</li>
+                <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
+                <li><strong>noResponse:</strong> boolean for whether there was no response</li>
+                <li><strong>negResponse:</strong> boolean for generally negative or discouraging terms (sorry, no, etc.)</li>
+                <li><strong>posResponse:</strong> boolean for generally positive or encouraging terms</li>
+                <li><strong>affirmResponse:</strong> boolean for presence of a scripted affirmation by text banker</li>
+                <li><strong>finalAffirmResponse:</strong> boolean for presence of a scripted follow up affirmation by text banker</li>
+            </ul>
+
+        </div>
+
+        <div class="upload-enabled">
+            <hr />
+            <h2 id="sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</h2>
+            <blockquote>I have SMS conversations and I need to figure out which text recipients volunteered to triple, which chose to opt out, what names they provided, and whether they moved.</blockquote>
+
+            <p>Upload a csv file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a> with a column of unique IDs labeled <strong>conversationid</strong>.</p>
+            
+            <form method="post" enctype="multipart/form-data">
+                <div>
+                    <label for="sccne_email">Your email:</label>
+                    <input type="email" id="sccne_email" name="sccne_email" size="30"/>
+                </div>
+                <div>
+                    <label for="sccne_file">Your CSV:</label>
+                    <input type=file id="sccne_file" name="sccne_file" accept=".csv">
+                    <input type="submit" value="Upload"/>
+                </div>
+            </form>
+
+            <p>If successful, the output will include two files:
+            <ul>
+                <li>A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
+                <ul>
+                    <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
+                    <li><strong>contact_phone:</strong> the phone number of the target</li>
+                    <li><strong>is_tripler:</strong> did this person agree to be a tripler ('yes' for everyone in this file)</li>
+                    <li><strong>opted_out:</strong> did this person opt out of future messages</li>
+                    <li><strong>wrong_number:</strong> did we have the wrong number for this person</li>
+                    <li><strong>names_extract:</strong> what names (if any) were provided by this person as tripling targets</li>
+                </ul>
+
+                <li>A file of conversations for manual review, with the following fields:
+                <ul>
+                    <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
+                    <li><strong>contact_phone:</strong> the phone number of the target</li>
+                    <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
+                    <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
+                    <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
+                    <li><strong>is_tripler:</strong> guess for did this person agree to be a tripler (to be reviewed)</li>
+                    <li><strong>opted_out:</strong> guess for did this person opt out of future messages (to be reviewed)</li>
+                    <li><strong>wrong_number:</strong> guess for did we have the wrong number for this person (to be reviewed)</li>
+                    <li><strong>names_extract:</strong> guess for what names (if any) were provided by this person as tripling targets (to be reviewed)</li>
+                </ul>
+
+                <li>A file of opt-outs, with the following fields:
+                <ul>
+                    <li><strong>conversationid:</strong> a unique identifier for the conversation</li>
+                    <li><strong>contact_phone:</strong> the phone number of the target</li>
+                    <li><strong>opted_out:</strong> yes/no</li>
+                    <li><strong>wrong_number:</strong> yes/no</li>
+            </ul>
+        </div>
+
 
         <div class="upload-enabled">
             <hr />
@@ -167,100 +268,6 @@
             </ul>
 
         </div>
-
-        <div class="upload-enabled">
-            <hr />
-
-            <h2 id="sms_agg">SMS Aggregation</h2>
-            <blockquote>I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.</blockquote>
-
-            <p>Upload a csv file of raw individual SMS messages. The csv should contain the following columns:</p>
-            <ul>
-                <li><strong>MessageId:</strong> Message timestamp OR an ascending unique ID for the message, used to determine message order</li>
-                <li><strong>ConversationId:</strong> unique ID for each conversation</li>
-                <li><strong>MessageDirection:</strong> direction ("inbound" or "outbound") of each message</li>
-                <li><strong>MessageBody:</strong> the body/content of the message</li>
-                <li><strong>EndpointPhoneNumber:</strong> phone number or any other unique identifier for the recipient</li>
-            </ul>
-
-            <form method="post" enctype="multipart/form-data">
-                <div>
-                    <label for="smsagg_email">Your email:</label>
-                    <input type="email" id="smsagg_email" name="smsagg_email" size="30"/>
-                </div>
-                <div>
-                    <label for="smsagg_file">Your CSV:</label>
-                    <input type="file" id="smsagg_file" name="smsagg_file" accept=".csv" />
-                    <input type="submit" value="Upload" />
-                </div>
-            </form>
-
-            <p id="sms_agg_output">If successful, the output will be a CSV with a single row representing each text message conversation, including the following fields:
-            <ul>
-                <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
-                <li><strong>contact_phone:</strong> the phone number of the target</li>
-                <li><strong>totalMessages:</strong> the total number of messages exchanged</li>
-                <li><strong>tripleMessage:</strong> initial message sent from the text banker to the target</li>
-                <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
-                <li><strong>tripleResponse:</strong> follow up message sent from the text banker to the target</li>
-                <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
-                <li><strong>tripleFinal:</strong> final follow up sent by text banker</li>
-                <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
-                <li><strong>noResponse:</strong> boolean for whether there was no response</li>
-                <li><strong>negResponse:</strong> boolean for generally negative or discouraging terms (sorry, no, etc.)</li>
-                <li><strong>posResponse:</strong> boolean for generally positive or encouraging terms</li>
-                <li><strong>affirmResponse:</strong> boolean for presence of a scripted affirmation by text banker</li>
-                <li><strong>finalAffirmResponse:</strong> boolean for presence of a scripted follow up affirmation by text banker</li>
-            </ul>
-
-        </div>
-
-        <div class="upload-enabled">
-            <hr />
-            <h2 id="sms_convo_cat_name_extract">SMS Conversation Categorization and Name Extraction</h2>
-            <blockquote>I have SMS conversations and I need to figure out which text recipients volunteered to triple, which chose to opt out, what names they provided, and whether they moved.</blockquote>
-
-            <p>Upload a csv file of the same format as the <a href="#sms_agg_output">output of SMS Aggregation</a></p>
-            
-            <form method="post" enctype="multipart/form-data">
-                <div>
-                    <label for="sccne_email">Your email:</label>
-                    <input type="email" id="sccne_email" name="sccne_email" size="30"/>
-                </div>
-                <div>
-                    <label for="sccne_file">Your CSV:</label>
-                    <input type=file id="sccne_file" name="sccne_file" accept=".csv">
-                    <input type="submit" value="Upload"/>
-                </div>
-            </form>
-
-            <p>If successful, the output will include two files:
-            <ul>
-                <li>A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
-                <ul>
-                    <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
-                    <li><strong>contact_phone:</strong> the phone number of the target</li>
-                    <li><strong>is_tripler:</strong> did this person agree to be a tripler ('yes' for everyone in this file)</li>
-                    <li><strong>opted_out:</strong> did this person opt out of future messages</li>
-                    <li><strong>wrong_number:</strong> did we have the wrong number for this person</li>
-                    <li><strong>names_extract:</strong> what names (if any) were provided by this person as tripling targets</li>
-                </ul>
-
-                <li>A file of conversations for manual review, with the following fields:
-                <ul>
-                    <li><strong>ConversationId:</strong> a unique identifier for the conversation</li>
-                    <li><strong>contact_phone:</strong> the phone number of the target</li>
-                    <li><strong>voterResponse:</strong> initial response(s) by the target (generally where the target makes known if they opt out or want to triple)</li>
-                    <li><strong>voterFinal:</strong> the final follow up message sent by the target (generally where they provide names)</li>
-                    <li><strong>voterPost:</strong> post script from the target (generally a thank you or good luck)</li>
-                    <li><strong>is_tripler:</strong> guess for did this person agree to be a tripler (to be reviewed)</li>
-                    <li><strong>opted_out:</strong> guess for did this person opt out of future messages (to be reviewed)</li>
-                    <li><strong>wrong_number:</strong> guess for did we have the wrong number for this person (to be reviewed)</li>
-                    <li><strong>names_extract:</strong> guess for what names (if any) were provided by this person as tripling targets (to be reviewed)</li>
-                </ul>
-            </ul>
-        </div>
-
 
     </main>
 
