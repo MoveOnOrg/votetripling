@@ -55,6 +55,7 @@ def allowed_file(file):
         and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
         and file.content_type == 'text/csv')
 
+
 def unique_filename():
     return secure_filename(
         '{}-{}.csv'.format(
@@ -62,6 +63,7 @@ def unique_filename():
             datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         )
     )
+
 
 def check_headers(file, upload_type):
     headers = file.readline().decode('utf-8').rstrip().split(',')
@@ -71,9 +73,9 @@ def check_headers(file, upload_type):
     return True
 
 
-def queue_job(file_path, job_type, email):
-    query = 'INSERT INTO jobs (input_file, job_type, email, status) VALUES (?, ?, ?, ?);'
-    db.query_db(query, (file_path, job_type, email, 'queued'), write=True)
+def queue_job(file_path, job_type, email, other_input=None):
+    query = 'INSERT INTO jobs (input_file, job_type, email, status, other_input) VALUES (?, ?, ?, ?, ?);'
+    db.query_db(query, (file_path, job_type, email, 'queued', other_input), write=True)
     return True
 
 
@@ -81,17 +83,17 @@ def process_job():
     """
         TODO: Replace with a celery queue and workers.
     """
-
-    # if there are any queued jobs, process the oldest one
-    query = 'SELECT id, input_file, job_type FROM jobs WHERE status = ? ORDER BY created_at ASC;'
-    job = db.query_db(query, ('queued',), one=True)
-    if not job:
-        print("No jobs to process")
-        return False
-    job_id = job['id']
-    input_file = job['input_file']
-    job_type = job['job_type']
-    print("Processing job {} file {} type {}".format(job_id, input_file, job_type))
+    if not current_app.config['PROCESS_ASYNC']:
+        # if there are any queued jobs, process the oldest one
+        query = 'SELECT id, input_file, job_type, other_input FROM jobs WHERE status = ? ORDER BY created_at ASC;'
+        job = db.query_db(query, ('queued',), one=True)
+        if not job:
+            print("No jobs to process")
+            return False
+        job_id = job['id']
+        input_file = job['input_file']
+        job_type = job['job_type']
+        print("Processing job {} file {} type {}".format(job_id, input_file, job_type))
     
     status = 'success'
     processing_query = 'UPDATE jobs SET status = ? WHERE id = ?;'
@@ -101,7 +103,6 @@ def process_job():
     # but we can easily change that later.
     scripts_folder = current_app.config['SCRIPTS_FOLDER']
     scripts_home_dir = os.path.dirname(scripts_folder)
-    print('shd', scripts_home_dir)
     output_file = unique_filename()
     second_output_file = None
     third_output_file = None
@@ -109,13 +110,17 @@ def process_job():
         second_output_file = unique_filename()
         if job_type == 'sccne_file':
             third_output_file = unique_filename()
+    if job_type == 'smsagg_file':
+        aff_regex, aff_regex_final, init_triple_phrase = job['other_input'].split('**')
+
     cmd = None
     if job_type == 'tblc_file':
         cmd = 'python {}/name_cleaning.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
     elif job_type == 'vec_file':
         cmd = 'python {}/van_export_cleaning.py -i {} -f {} -o {} -m {}'.format(
-            scripts_folder, input_file, scripts_home_dir, output_file, second_output_file)
+            scripts_folder, input_file, scripts_home_dir, output_file,
+            second_output_file)
     elif job_type == 'tblctmc_file':
         cmd = 'python {}/name_cleaning_with_responses.py -i {} -f {} -o {}'.format(
             scripts_folder, input_file, scripts_home_dir, output_file)
@@ -124,11 +129,13 @@ def process_job():
             scripts_folder, input_file, scripts_home_dir, output_file, second_output_file,
             third_output_file)
     elif job_type == 'smsagg_file':
-        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{}'.format(
-            scripts_folder, input_file, current_app.config['RESULTS_FOLDER'], output_file)
+        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{} -a "{}" -af "{}" -t "{}"'.format(
+            scripts_folder, input_file, current_app.config['RESULTS_FOLDER'],
+            output_file, aff_regex, aff_regex_final, init_triple_phrase)
     else:
         err_log = "Unknown job type {}".format(job_type)
         return False, err_log, None
+    
     print("cmd", cmd)
     job_run = subprocess.run(cmd, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, shell=True)
@@ -139,15 +146,13 @@ def process_job():
         print(err_log)
     else:
         print("SUCCESS")
+    
     result_file = None
     if status == 'success':
-        result_file = '{}/{}'.format(current_app.config['RESULTS_FOLDER'], output_file)
-        if second_output_file:
-            result_file = '{0}/{1}|{0}/{2}'.format(
-                current_app.config['RESULTS_FOLDER'], output_file, second_output_file)
-        if third_output_file:
-            result_file = '{0}/{1}|{0}/{2}|{0}/{3}'.format(
-                current_app.config['RESULTS_FOLDER'], output_file, second_output_file, third_output_file)
+        result_files = list(filter(
+            None, [output_file, second_output_file, third_output_file]))
+        result_file = '|'.join([
+            '{}/{}'.format(current_app.config['RESULTS_FOLDER'], file) for file in result_files])
     done_query = 'UPDATE jobs SET status = ?, result_file = ? WHERE id = ?;'
     update = db.query_db(done_query, (status, result_file, job_id), write=True)
     if status == 'success':
@@ -198,43 +203,41 @@ def index():
             file.save(file_path)
             email_name = '{}_email'.format(upload_type.split('_')[0])
             email = request.form[email_name]
-            result = queue_job(file_path, upload_type, email)
+            aff_regex = None
+            aff_regex_final = None
+            init_triple_phrase = None
+            if upload_type == 'smsagg_file':
+                aff_regex = request.form['aff_regex']
+                aff_regex_final = request.form['aff_regex_final']
+                init_triple_phrase = request.form['init_triple_phrase']
 
-            # This message is currently a lie, we're not really queueing jobs now
-            # except for very briefly.
-            # queue_msg = ('Queued file {} for processing as {}. Check your email {} '
-            #        'in a few minutes for results.').format(
-            #            filename,
-            #            UPLOAD_TYPES[upload_type]['name'],
-            #            email)
-            # queue_msg = ('Processing file {} as {}'.format(
-            #                 filename, UPLOAD_TYPES[upload_type]['name']))
-            # flash(queue_msg, 'info')
-            success, output, second_output, third_output = process_job()
-            output_files = [output, second_output, third_output]
-            if success:
-                outcome_msg = Markup(
-                    '<a href="/results/{}">Download results</a>'.format(output))
-                if second_output:
-                    result_links = ['<a href="/results/{}">file {}</a>'.format(
-                        x, output_files.index(x) + 1) for x in output_files]
+            outcome_msg = ('Queued file {} for processing as {}. Check your email {} '
+                   'in a few minutes for results.').format(
+                       filename, UPLOAD_TYPES[upload_type]['name'], email)
+
+            if not current_app.config['PROCESS_ASYNC']:
+                result = queue_job(file_path, upload_type, email, '{}**{}**{}'.format(aff_regex, aff_regex_final, init_triple_phrase))
+                success, output, second_output, third_output = process_job()
+                output_files = [output, second_output, third_output]
+                if success:
                     outcome_msg = Markup(
-                        'Download results:  {}'.format('  '.join(result_links)))
-            else:
-                outcome_msg = 'Error processing file {}'.format(
-                    output) if os.environ['FLASK_ENV'] == 'development' else 'Error processing file'
+                        '<a href="/results/{}">Download results</a>'.format(output))
+                    if second_output:
+                        result_links = ['<a href="/results/{}">file {}</a>'.format(
+                            x, output_files.index(x) + 1) for x in output_files]
+                        outcome_msg = Markup(
+                            'Download results:  {}'.format('  '.join(result_links)))
+                else:
+                    outcome_msg = 'Error processing file {}'.format(
+                        output) if os.environ['FLASK_ENV'] == 'development' else 'Error processing file'
+
             flash(outcome_msg, 'info')
             return redirect(request.url)
     # GET
     return render_template('upload_form.html')
 
 
-# returning results files
 @bp.route('/results/<filename>')
-def uploaded_file(filename):
+def results_file(filename):
     return send_from_directory(current_app.config['RESULTS_FOLDER'],
                                filename)
-    # TODO: documentation on setting file directory permissions
-    # i.e. results dir can't be inspected
-
-

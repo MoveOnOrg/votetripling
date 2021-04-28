@@ -7,5 +7,6 @@ CREATE TABLE jobs (
   result_file TEXT,
   job_type TEXT NOT NULL,
   email TEXT NOT NULL,
-  status TEXT NOT NULL
+  status TEXT NOT NULL,
+  other_input TEXT
 );

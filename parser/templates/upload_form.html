@@ -85,12 +85,26 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="smsagg_email">Your email:</label>
+                    <label for="smsagg_email">Your email (to receive results):</label>
                     <input type="email" id="smsagg_email" name="smsagg_email" size="30"/>
                 </div>
                 <div>
                     <label for="smsagg_file">Your CSV:</label>
                     <input type="file" id="smsagg_file" name="smsagg_file" accept=".csv" />
+                </div>
+                <div>
+                    <label for="aff_regex">(optional) Regular expression to detect phrases used by text bankers to affirm that the voter has responded that they are willing to participate. Default value is <strong>what are the [a-z]+ names</strong>.</label>
+                    <div><input type="text" id="aff_regex" name="aff_regex" value="what are the [a-z]+ names" size="50"/></div>
+                </div>
+                <div>
+                    <label for="aff_regex_final">(optional) Regular expression used to detect phrases used by text bankers to affirm that the voter has provided names. Default value is <strong>ways to vote|how to vote|a reminder to vote can make all the difference</strong>.</label>
+                    <div><input type="text" id="aff_regex_final" name="aff_regex_final" value="ways to vote|how to vote|a reminder to vote can make all the difference" size="60"/></div>
+                </div>
+                <div>
+                    <label for="init_triple_phrase">(optional) Regular expression used to mark the initial intro phrase used by text bankers. We will eliminate any messages before this phrase as anomalous. Leave blank if you don't want to remove anything. Default value is (blank).</label>
+                    <div><input type="text" id="init_triple_phrase" name="init_triple_phrase" value="" size="60"/></div>
+                </div>
+                <div>
                     <input type="submit" value="Upload" />
                 </div>
             </form>
@@ -124,7 +138,7 @@
             
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="sccne_email">Your email:</label>
+                    <label for="sccne_email">Your email (to receive results):</label>
                     <input type="email" id="sccne_email" name="sccne_email" size="30"/>
                 </div>
                 <div>
@@ -181,7 +195,7 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="tblc_email">Your email:</label>
+                    <label for="tblc_email">Your email (to receive results):</label>
                     <input type="email" id="tblc_email" name="tblc_email" size="30"/>
                 </div>
                 <div>
@@ -208,7 +222,7 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="tblctmc_email">Your email:</label>
+                    <label for="tblctmc_email">Your email (to receive results):</label>
                     <input type="email" id="tblctmc_email" name="tblctmc_email" size="30"/>
                 </div>
                 <div>
@@ -239,7 +253,7 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="vec_email">Your email:</label>
+                    <label for="vec_email">Your email (to receive results):</label>
                     <input type="email" id="vec_email" name="vec_email" size="30"/>
                 </div>
                 <div>
