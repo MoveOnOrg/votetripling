@@ -123,17 +123,16 @@ def process_job(data):
         print(err_log)
     else:
         print("SUCCESS")
-    
+
     if status == 'success':
         if config.PROCESS_ASYNC:
             result_files = list(filter(
                 None, [output_file, second_output_file, third_output_file]))
-            result_file = '|'.join([
-                '{}/{}'.format(config.RESULTS_FOLDER, file) for file in result_files])
+            result_file = '|'.join([file for file in result_files])
             email_data = {
                 'result_file': result_file,
                 'email': data['email'] or config.TEST_TARGET_EMAIL,
-                'upload_type': upload_type
+                'job_type': job_type
             }
             res = email_results.apply_async(args=[email_data], countdown=0)
         # TODO: delete input file. If processing wasn't successful, leave the input file
@@ -162,7 +161,7 @@ def email_results(data):
             "<p>Link(s) to download the results:</p>"
             "{}"
             "<p>Your result files will be available for download for {} hours.</p>"
-        ).format(UPLOAD_TYPES[data['upload_type']]['name'], results, config.FILE_LIFE)
+        ).format(UPLOAD_TYPES[data['job_type']]['name'], results, config.FILE_LIFE)
         mail.send(msg)
     return True
 
@@ -212,7 +211,7 @@ def index():
 
             outcome_msg = ('Queued file {} for processing as {}. Check your email '
                    'in a few minutes for results.').format(
-                       filename, UPLOAD_TYPES[upload_type]['name'])
+                       file.filename, UPLOAD_TYPES[upload_type]['name'])
             data = {
                 'input_file': file_path,
                 'upload_type': upload_type,
