@@ -71,7 +71,7 @@ def check_headers(file, upload_type):
     return True
 
 
-@celery.task
+@celery.task(time_limit=1800)
 def process_job(data):
     # It seems silly to run these via the command line
     # but we can easily change that later.
@@ -135,6 +135,7 @@ def process_job(data):
                 'job_type': job_type
             }
             res = email_results.apply_async(args=[email_data], countdown=0)
+            cleanup = clean_files.apply_async(args=[data], countdown=10)
         # TODO: delete input file. If processing wasn't successful, leave the input file
         # for troubleshooting
         return True, output_file, second_output_file, third_output_file
@@ -165,11 +166,31 @@ def email_results(data):
         mail.send(msg)
     return True
 
-
-def cleanup_files(interval=72):
-    # delete output files that are more than 72 hours old
-    pass
-
+@celery.task
+def cleanup_files(data=None):
+    # delete input file
+    print('FILE CLEANUP')
+    if data:
+        input_file = data['input_file']
+        if os.path.exists(input_file):
+            print('deleting input file {}'.format(input_file))
+            os.remove(input_file)
+        else:
+            print('{} does not exist'.format(input_file))
+    # delete output files that are more than config.FILE_LIFE hours old
+    print('deleting results files')
+    output_folder = config.RESULTS_FOLDER
+    files = os.listdir(config.RESULTS_FOLDER)
+    for file in files:
+        try:
+            date_time_obj = datetime.datetime.strptime(
+                file.split('-')[1].replace('.csv', ''), '%Y%m%d%H%M%S')
+        except:
+            continue
+        if date_time_obj + datetime.timedelta(hours=config.FILE_LIFE) < datetime.datetime.now():
+            print(file)
+            os.remove('{}/{}'.format(config.RESULTS_FOLDER, file))
+    return True
 
 # most of the business is here
 @bp.route('/', methods=['GET', 'POST'])
@@ -249,7 +270,7 @@ def results_file(filename):
                                filename)
 
 
-# for testing only
+# test emailing
 @bp.route('/email-results/', methods=['GET'])
 def email():
     if request.method == 'GET':
@@ -269,7 +290,7 @@ def email():
     return 'not allowed here'
 
 
-# to manually kick off processing
+# manually kick off processing
 @bp.route('/process/<upload_type>/<file_name>', methods=['GET'])
 def process():
     if request.method == 'GET':
@@ -282,4 +303,13 @@ def process():
         msg = ('File {} queued for processing as {}. Results will be emailed to {}.').format(
             file_name, upload_type, current_app.config['TEST_TARGET_EMAIL'])
         return msg
+    return 'not allowed here'
+
+
+# manually kick off file cleanup
+@bp.route('/cleanup/', methods=['GET'])
+def cleanup():
+    if request.method == 'GET':
+        res = cleanup_files.apply_async(countdown=0)
+        return ('deleting result files older than {} hours'.format(config.FILE_LIFE))
     return 'not allowed here'

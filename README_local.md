@@ -131,11 +131,11 @@ This script will output two files:
 - *names_extract* a guess for the extracted names (to be reviewed)
 
 # Running the app frontend
-app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. If config.PROCESS_ASYNC is set to True, it uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email notifications in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously and the app waits to deliver the results as linked files.
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. 
 
 Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
 
-You'll need to install Redis. On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
+You'll need to [install Redis](https://redis.io/topics/quickstart). On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
 
 Copy config.py from `instance/config.py.example` file and fill it in.
 
@@ -153,11 +153,20 @@ Email config variables in the example config file assume you are using Gmail for
 * Gmail probably isn't adequate for production scale; you can only send about 100 emails a day.
 * Gmail doesn't consider any apps that send mail using SMTP protocol secure. When you try and run the app with a Gmail account you'll get security warnings on that account unless you have enabled what Google calls ["Less Secure Apps"](https://support.google.com/accounts/answer/6010255?hl=en).
 
-## Background tasks
+## Running scripts async in the background vs. waiting for results
 
-* `celery -A celery_worker.celery worker --loglevel=info` will spin up a celery worker for you in a local dev environment.
+If config.PROCESS_ASYNC is set to True, the app uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email results in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously and the app waits to deliver the results as linked files. 
+
+Synchronous mode is not recommended for production if you expect lots of large files that take a while ( > 30 seconds) to process.
+
+If you set config.PROCESS_ASYNC to true, you'll need to run celery and redis (which celery uses to manage its queue)
+* `celery -A celery_worker.celery worker --loglevel=info` will spin up a celery worker for you in a local dev environment. [More on celery workers](https://docs.celeryproject.org/en/stable/userguide/workers.html)
 * Run redis in a different terminal window with `redis-server`.
 
 ## Testing the app frontend
 
 `pytest` should run all the tests in the `tests` folder.
+
+## TODO
+
+ A Docker container would ease of deployment.
