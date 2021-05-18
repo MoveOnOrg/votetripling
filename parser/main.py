@@ -63,11 +63,17 @@ def unique_filename():
     )
 
 
-def check_headers(file, upload_type):
-    headers = file.readline().decode('utf-8').rstrip().split(',')
-    for header in UPLOAD_TYPES[upload_type]['required_headers']:
-        if header not in headers:
-            return False
+def check_headers(file_path, upload_type):
+    # open file as csv and read the first line
+    with open(file_path, newline='') as f:
+        reader = csv.reader(f)
+        headers = next(reader)
+        print("headers", headers) # for debugging
+        for header in UPLOAD_TYPES[upload_type]['required_headers']:
+            if header not in headers:
+                f.close()
+                os.remove(file_path)
+                return False
     return True
 
 
@@ -135,7 +141,7 @@ def process_job(data):
                 'job_type': job_type
             }
             res = email_results.apply_async(args=[email_data], countdown=0)
-            cleanup = clean_files.apply_async(args=[data], countdown=10)
+            cleanup = cleanup_files.apply_async(args=[data], countdown=10)
         # TODO: delete input file. If processing wasn't successful, leave the input file
         # for troubleshooting
         return True, output_file, second_output_file, third_output_file
@@ -209,17 +215,16 @@ def index():
             if not (file and allowed_file(file)):
                 flash('Invalid file type. Select a CSV to upload', 'error')
                 return redirect(request.url)
-            if not check_headers(file, upload_type):
+
+            filename = unique_filename()
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            if not check_headers(file_path, upload_type):
                 msg = 'Invalid CSV headers. Check CSV for required columns {}.'.format(
                     UPLOAD_TYPES[upload_type]['required_headers'])
                 flash(msg, 'error')
                 return redirect(request.url)
 
-            # if it passes all the checks, save file and queue for processing
-            filename = unique_filename()
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.seek(0) # return pointer to beginning of file
-            file.save(file_path)
             email_name = '{}_email'.format(upload_type.split('_')[0])
             email = request.form[email_name]
             aff_regex = None
