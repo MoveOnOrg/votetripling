@@ -109,10 +109,10 @@ def process_job(data):
             scripts_folder, input_file, scripts_home_dir, output_file, second_output_file,
             third_output_file)
     elif job_type == 'smsagg_file':
-        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{} -a "{}" -af "{}" -t "{}"'.format(
+        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{} -a "{}" -af "{}" -t "{}" -in "{}"" -out "{}"'.format(
             scripts_folder, input_file, config.RESULTS_FOLDER,
             output_file, data['aff_regex'], data['aff_regex_final'],
-            data['init_triple_phrase'])
+            data['init_triple_phrase'], data['inbound_text'], data['outbound_text'])
     else:
         err_log = "Unknown job type {}".format(job_type)
         return False, err_log, None, None
@@ -230,10 +230,14 @@ def index():
             aff_regex = None
             aff_regex_final = None
             init_triple_phrase = None
+            inbound_text = None
+            outbound_text = None
             if upload_type == 'smsagg_file':
                 aff_regex = request.form['aff_regex']
                 aff_regex_final = request.form['aff_regex_final']
                 init_triple_phrase = request.form['init_triple_phrase']
+                inbound_text = request.form['inbound_text']
+                outbound_text = request.form['outbound_text']
 
             outcome_msg = ('Queued file {} for processing as {}. Check your email '
                    'in a few minutes for results.').format(
@@ -244,7 +248,9 @@ def index():
                 'email': email,
                 'aff_regex': aff_regex,
                 'aff_regex_final': aff_regex_final,
-                'init_triple_phrase': init_triple_phrase
+                'init_triple_phrase': init_triple_phrase, 
+                'inbound_text': inbound_text,
+                'outbound_text': outbound_text
             }
             
             if current_app.config['PROCESS_ASYNC']:

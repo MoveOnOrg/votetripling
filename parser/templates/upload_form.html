@@ -79,7 +79,7 @@
             <ul>
                 <li><strong>MessageId:</strong> Message timestamp OR an ascending unique ID for the message, used to determine message order</li>
                 <li><strong>ConversationId:</strong> unique ID for each conversation</li>
-                <li><strong>MessageDirection:</strong> direction ("inbound" or "outbound") of each message</li>
+                <li><strong>MessageDirection:</strong> direction (default: "Inbound" or "Outbound") of each message</li>
                 <li><strong>MessageBody:</strong> the body/content of the message</li>
                 <li><strong>EndpointPhoneNumber:</strong> phone number or any other unique identifier for the recipient</li>
             </ul>
@@ -104,6 +104,14 @@
                 <div>
                     <label for="init_triple_phrase">(optional) Regular expression used to mark the initial intro phrase used by text bankers. We will eliminate any messages before this phrase as anomalous. Leave blank if you don't want to remove anything. Default value is (blank).</label>
                     <div><input type="text" id="init_triple_phrase" name="init_triple_phrase" value="" size="60"/></div>
+                </div>
+                <div>
+                    <label for="inbound_text">(optional) Exact text of the label given to inbound message in the input data MessageDirection column. Default value is <strong>Inbound</strong>.</label>
+                    <div><input type="text" id="inbound_text" name="inbound_text" value="Inbound" size="60"/></div>
+                </div>
+                <div>
+                    <label for="outbound_text">(optional) Exact text of the label given to outbound message in the input data MessageDirection column. Default value is <strong>Outbound</strong>.</label>
+                    <div><input type="text" id="outbound_text" name="outbound_text" value="Outbound" size="60"/></div>
                 </div>
                 <div>
                     <input type="submit" value="Upload" />
@@ -149,7 +157,7 @@
                 </div>
             </form>
 
-            <p>If successful, the output will include two files:
+            <p>If successful, the output will include three files:
             <ul>
                 <li>A file of triplers. For each tripler, we provide the following fields (each row represents one text message conversation):
                 <ul>
