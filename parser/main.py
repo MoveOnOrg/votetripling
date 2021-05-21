@@ -109,7 +109,7 @@ def process_job(data):
             scripts_folder, input_file, scripts_home_dir, output_file, second_output_file,
             third_output_file)
     elif job_type == 'smsagg_file':
-        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{} -a "{}" -af "{}" -t "{}" -in "{}"" -out "{}"'.format(
+        cmd = 'python {}/aggregate_text_messages.py -d {} -o {}/{} -a "{}" -af "{}" -t "{}" -in "{}" -out "{}"'.format(
             scripts_folder, input_file, config.RESULTS_FOLDER,
             output_file, data['aff_regex'], data['aff_regex_final'],
             data['init_triple_phrase'], data['inbound_text'], data['outbound_text'])
@@ -124,8 +124,8 @@ def process_job(data):
     if job_run.returncode: # exit code of 0 is success, 1 is generic error
         status = 'error'
         err_log = job_run.stdout.decode()
-        print("ERROR: Could not process job {} file {} type {}".format(
-            job_id, input_file, job_type))
+        print("ERROR: Could not process file {} as type {}".format(
+            input_file, job_type))
         print(err_log)
     else:
         print("SUCCESS")
@@ -136,17 +136,28 @@ def process_job(data):
                 None, [output_file, second_output_file, third_output_file]))
             result_file = '|'.join([file for file in result_files])
             email_data = {
+                'success': True,
                 'result_file': result_file,
                 'email': data['email'] or config.TEST_TARGET_EMAIL,
                 'job_type': job_type,
-                'original_file': data['original_file']
+                'original_file': data['original_file'],
             }
             res = email_results.apply_async(args=[email_data], countdown=0)
             cleanup = cleanup_files.apply_async(args=[data], countdown=10)
         # TODO: delete input file. If processing wasn't successful, leave the input file
         # for troubleshooting
         return True, output_file, second_output_file, third_output_file
-    else:
+    else: # failed to process
+        if config.PROCESS_ASYNC:
+            email_data = {
+                'success': False,
+                'email': data['email'] or config.TEST_TARGET_EMAIL,
+                'job_type': job_type,
+                'original_file': data['original_file'],
+                'error_log': err_log
+            }
+            res = email_results.apply_async(args=[email_data], countdown=0)
+            cleanup = cleanup_files.apply_async(args=[data], countdown=10)
         return False, err_log, None, None
 
 
@@ -161,15 +172,26 @@ def email_results(data):
                 sender=config.EMAIL_SENDER,
                 recipients=[data['email']])
         # accommodating more than one output file
-        output = data['result_file'].split('|')
-        results = ''.join(['<p>{}results/{}</p>'.format(config.BASE_URL, output_file) for output_file in output])
-        msg.html = (
-            "<p>Thank you for using the votetripling.org SMS transcript processing tool.</p>"
-            "<p>The {} script successfully processed your data file {}.</p>"
-            "<p>Link(s) to download the results:</p>"
-            "{}"
-            "<p>Your result files will be available for download for {} hours.</p>"
-        ).format(UPLOAD_TYPES[data['job_type']]['name'], data['original_file'], results, config.FILE_LIFE)
+        if data['success']:
+            output = data['result_file'].split('|')
+            results = ''.join(['<p>{}results/{}</p>'.format(config.BASE_URL, output_file) for output_file in output])
+            msg.html = (
+                "<p>Thank you for using the votetripling.org SMS transcript processing tool.</p>"
+                "<p>The {} script successfully processed your data file {}.</p>"
+                "<p>Link(s) to download the results:</p>"
+                "{}"
+                "<p>Your result files will be available for download for {} hours.</p>"
+            ).format(UPLOAD_TYPES[data['job_type']]['name'], data['original_file'], 
+                results, config.FILE_LIFE)
+        else: # send along the error log
+            msg.html = (
+                "<p>Thank you for using the votetripling.org SMS transcript processing tool.</p>"
+                "<p>The {} script failed to process your data file {}.</p>"
+                "<p>It returned the following error:</p>"
+                "<pre>{}</pre>"
+                "<p>Please correct the issues and try again.</p>"
+                ).format(UPLOAD_TYPES[data['job_type']]['name'], data['original_file'],
+                    data['error_log'])
         mail.send(msg)
     return True
 
@@ -269,7 +291,7 @@ def index():
                         'Download results:  {}'.format('  '.join(result_links)))
                 else:
                     outcome_msg = 'Error processing file {}'.format(
-                        output) if os.environ['FLASK_ENV'] == 'development' else 'Error processing file'
+                        output) if current_app.config['SHOW_SCRIPT_ERRORS'] else 'Error processing file'
 
             flash(outcome_msg, 'info')
             return redirect(request.url)
@@ -291,7 +313,7 @@ def email():
             'job_id': 1234,
             'upload_type': 'vec_file',
             'result_file': '123.csv|456.csv',
-            'email': current_app.config['TEST_TARGET_EMAIL']
+            'email': current_app.config['TEST_TARGET_EMAIL'],
             'original_file': 'EMAIL TEST'
         }
         res = email_results.apply_async(args=[data], countdown=0)
