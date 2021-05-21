@@ -380,7 +380,7 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "-p", "--phoneCol",
-        default="EndpointPhoneNumber",
+        default="ContactPhone",
         help="name of the column in input data containing the phone number. Any unique identifier for the recipient will suffice"
     )
     PARSER.add_argument(

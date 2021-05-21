@@ -39,7 +39,7 @@ UPLOAD_TYPES = {
     },
     'smsagg_file': {
         'name': 'SMS Aggregation',
-        'required_headers': []
+        'required_headers': ['MessageId', 'ConversationId', 'MessageDirection', 'MessageBody', 'ContactPhone']
     },
     'vec_file': {
         'name': 'VAN Export Cleaning',
