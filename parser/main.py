@@ -138,7 +138,8 @@ def process_job(data):
             email_data = {
                 'result_file': result_file,
                 'email': data['email'] or config.TEST_TARGET_EMAIL,
-                'job_type': job_type
+                'job_type': job_type,
+                'original_file': data['original_file']
             }
             res = email_results.apply_async(args=[email_data], countdown=0)
             cleanup = cleanup_files.apply_async(args=[data], countdown=10)
@@ -164,11 +165,11 @@ def email_results(data):
         results = ''.join(['<p>{}results/{}</p>'.format(config.BASE_URL, output_file) for output_file in output])
         msg.html = (
             "<p>Thank you for using the votetripling.org SMS transcript processing tool.</p>"
-            "<p>The {} script successfully processed your data file.</p>"
+            "<p>The {} script successfully processed your data file {}.</p>"
             "<p>Link(s) to download the results:</p>"
             "{}"
             "<p>Your result files will be available for download for {} hours.</p>"
-        ).format(UPLOAD_TYPES[data['job_type']]['name'], results, config.FILE_LIFE)
+        ).format(UPLOAD_TYPES[data['job_type']]['name'], data['original_file'], results, config.FILE_LIFE)
         mail.send(msg)
     return True
 
@@ -243,6 +244,7 @@ def index():
                    'in a few minutes for results.').format(
                        file.filename, UPLOAD_TYPES[upload_type]['name'])
             data = {
+                'original_file': file.filename,
                 'input_file': file_path,
                 'upload_type': upload_type,
                 'email': email,
@@ -290,6 +292,7 @@ def email():
             'upload_type': 'vec_file',
             'result_file': '123.csv|456.csv',
             'email': current_app.config['TEST_TARGET_EMAIL']
+            'original_file': 'EMAIL TEST'
         }
         res = email_results.apply_async(args=[data], countdown=0)
         if res.failed():
