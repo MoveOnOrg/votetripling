@@ -1,0 +1,34 @@
+import os
+
+SECRET_KEY = 'dev' # change this for prod!
+BASE_URL = 'http://localhost:5000/' # local dev
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # 16 MB
+
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_FOLDER = os.path.join(os.path.dirname(APP_ROOT), 'Projects/NLP/SMS_Annotation/Input_Data'),
+RESULTS_FOLDER = os.path.join(os.path.dirname(APP_ROOT), 'Projects/NLP/SMS_Annotation/Output_Data'),
+SCRIPTS_FOLDER = os.path.join(os.path.dirname(APP_ROOT), 'Projects/NLP/SMS_Annotation/Code'),
+
+# If PROCESS_ASYNC is set to True, we run scripts in the background and email
+# results with celery, redis and flask-mail.
+# If PROCESS_ASYNC is set to False, we run scripts synchronously and await a
+# link to the results. If a script take too long to run (as they do with larger
+# files), the web app may time out before the script finishes.
+PROCESS_ASYNC = True
+
+# Show full script error output in error message to user
+SHOW_SCRIPT_ERRORS = False
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
+
+MAIL_SERVER = 'smtp.gmail.com'
+MAIL_PORT = 587
+MAIL_USE_TLS = True
+MAIL_USERNAME = 'notarealemail@gmail.com'
+MAIL_PASSWORD = 'password1234'
+EMAIL_SENDER = 'Votetripling SMS Transcript Processing, notarealemail@gmail.com'
+EMAIL_SUBJECT = 'SMS transcript processing'
+TEST_TARGET_EMAIL = 'your.email@example.com'
+
+FILE_LIFE = 72 # no. of hrs we let uploaded and result files hang out on the server

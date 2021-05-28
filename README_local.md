@@ -11,6 +11,10 @@ This document describes how to use 5 versions of name extraction scripts for vot
   - Levenshtein `pip install python-Levenshtein`
   - NLTK `pip install nltk`
 
+- Alternatively, if you are in an environment where you can't / don't want to install Anaconda, install Python 3.6.9+. Create and activate your Python 3 virtual environment (see [pipenv and virtualenv](https://docs.python-guide.org/dev/virtualenvs/)) and run `pip install -r requirements.txt`
+
+- You'll also need to run `spacy download en` once.
+
 ## Getting Started
 Find your use case below and add your input data to the appropriate place, then run the specified python script.
 All of these scripts should be run out of the directory `Projects/NLP/SMS_Annotation`  
@@ -21,7 +25,7 @@ All output data (after running a script) will be found in `Projects/NLP/SMS_Anno
 **Use Case:** I need to aggregate SMS messages by conversation. This step is necessary before performing any extraction on SMS data.  
   
 **Inputs:**
-Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.  
+Add a csv added to the Input_Data folder. This csv should be raw individual SMS messages, not grouped by conversation.
 
 **Instructions:**
 Open the script aggregate_text_messages.R in RStudioo and follow the instructions to aggregate messages into a single row per conversation
@@ -45,16 +49,16 @@ A file (filename specified by you in the R script) with a single row representin
   
   
 ## SMS Conversation Categorization and Name Extraction
-**Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.  
-  
+**Use Case:** I have SMS conversations and I need to figure out which text recipiants volunteered to triple, which chose to opt out, what names they provided, and whether they moved.
+
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.   
+Add a CSV to the Input_Data folder. This csv file must be of the same format as the output of the aggregation in step 1.
 
 **Instructions:**
-In this directory, run `python3 Code/annotate_conversations.py -d [input_filename]`. 
+In this directory, run `python3 Code/annotate_conversations.py -i [input_filename]`.
 
 **Outputs:**
-This script will output two files:  
+This script will output three files:
 1. A file of triplers called `sms_triplers.csv`. For each tripler, we provide the following fields (each row represents one text message conversation):
 - *ConversationId* a unique identifier for the conversation
 - *contact_phone* the phone number of the target 
@@ -74,46 +78,45 @@ This script will output two files:
 - *wrong_number* guess for did we have the wrong number for this person (to be reviewed)
 - *names_extract* guess for what names (if any) were provided by this person as tripling targets (to be reviewed)
 
-  
+3. A file of opt-outs
+
 ## Text Banker Log Cleaning
-**Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.  
-  
+**Use Case:** I have text banker logs for names provided by vote triplers. I need these logs cleaned up and standardized.
+
 **Inputs:**
-Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker  
+Add a csv to the Input_Data folder. This csv file must contain column 'names' containing the names logged by a text banker
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning.py -d [input_filename]`  
+In this directory, run `python3 Code/name_cleaning.py -i [input_filename]`
 
 **Outputs:**
-A File named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
-  
-  
+A file in `Output_Data` named `labeled_names_cleaned_no_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file 
+
 ## Text Banker Log Cleaning (utilizing text message conversation)
-**Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.  
-  
+**Use Case:** I have text banker logs for names provided by vote triplers. I also have access to the initial text conversation. I need these logs cleaned up and standardized. We use a different script for these cases, because we can clean up the logs better and perform spell check by looking at the original messages.
+
 **Inputs:**
 Add a csv to the Input_Data folder. 
 This csv file must be of the same format as the output of the aggregation in step 1.
 This csv file must also contain column 'names' containing the names logged by a text banker.
 
 **Instructions:**
-In this directory, run `python3 Code/name_cleaning_with_responses.py -d [input_filename]`
+In this directory, run `python3 Code/name_cleaning_with_responses.py -i [input_filename]`
 
 **Outputs:**
 A File named `labeled_names_cleaned_with_response.csv` with the cleaned names in a column titles "clean_names", along with any other columns in the initial file
-  
-  
+
 ## VAN Export Cleaning
 **Use Case:** I have a VAN Export and I need to extract any tripling target names from the note text.
 
 **Inputs:**
 Add a csv to the Input_Data folder. This csv file must contain the following columns:
-- *VANID* a unique ID for this row
+- *voter_file_vanid* a unique ID for this row
 - *ContactName* the name of the tripler
 - *NoteText* free text possibly including names of tripling targets
 
 **Instructions:**
-In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`  
+In this directory, run `python3 Code/van_export_cleaning.py -d [input_filename]`
 
 **Outputs:**
 This script will output two files:  
@@ -126,3 +129,44 @@ This script will output two files:
 - *ContactName* a unique identifier for the conversation
 - *NoteText* free text possibly including names of tripling targets
 - *names_extract* a guess for the extracted names (to be reviewed)
+
+# Running the app frontend
+app.py is a Python 3.x, Flask-based frontend that provides a dedicated UI for uploading data sets and requesting that the above scripts be run with them. 
+
+Make sure you've created and activated a virtual environment (see Requirements) and installed everything in requirements.txt.
+
+You'll need to [install Redis](https://redis.io/topics/quickstart). On OSX, install homebrew and then `brew install redis`. You may also need to run `pip install "celery[redis]"`
+
+Copy config.py from `instance/config.py.example` file and fill it in.
+
+To run an instance of the frontend locally, from the project root directory run:
+```
+export FLASK_APP=parser
+export FLASK_ENV=development
+flask run
+```
+and access the running application at [http://localhost:5000/](http://localhost:5000/)
+
+## Configuring email
+
+Email config variables in the example config file assume you are using Gmail for testing. Two important notes:
+* Gmail probably isn't adequate for production scale; you can only send about 100 emails a day.
+* Gmail doesn't consider any apps that send mail using SMTP protocol secure. When you try and run the app with a Gmail account you'll get security warnings on that account unless you have enabled what Google calls ["Less Secure Apps"](https://support.google.com/accounts/answer/6010255?hl=en).
+
+## Running scripts async in the background vs. waiting for results
+
+If config.PROCESS_ASYNC is set to True, the app uses Celery workers, a Redis queue and Flask-mail to manage script jobs and email results in the background. If config.PROCESS_ASYNC is set to False, it runs script jobs synchronously and the app waits to deliver the results as linked files. 
+
+Synchronous mode is not recommended for production if you expect lots of large files that take a while ( > 30 seconds) to process.
+
+If you set config.PROCESS_ASYNC to true, you'll need to run celery and redis (which celery uses to manage its queue)
+* `celery -A celery_worker.celery worker --loglevel=info` will spin up a celery worker for you in a local dev environment. [More on celery workers](https://docs.celeryproject.org/en/stable/userguide/workers.html)
+* Run redis in a different terminal window with `redis-server`.
+
+## Testing the app frontend
+
+`pytest` should run all the tests in the `tests` folder.
+
+## TODO
+
+ A Docker container would ease of deployment.
